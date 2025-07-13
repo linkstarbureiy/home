@@ -323,22 +323,7 @@
                 <div class="timer-display" id="timerDisplay">00:00.000</div>
                 <div class="moves-display" id="movesDisplay">Moves: 0</div> <!-- New: Moves display -->
                 <div class="button-group">
-                    <button class="control-button" id="scrambleButton">Scramble</button>
-                    <button class="control-button" id="startButton">Start</button>
-                    <button class="control-button" id="resetButton">Reset</button>
-                    <!-- Twist buttons for each face and direction -->
-                    <button class="control-button twist-button" data-face="F" data-direction="1">F</button>
-                    <button class="control-button twist-button" data-face="F" data-direction="-1">F'</button>
-                    <button class="control-button twist-button" data-face="U" data-direction="1">U</button>
-                    <button class="control-button twist-button" data-face="U" data-direction="-1">U'</button>
-                    <button class="control-button twist-button" data-face="R" data-direction="1">R</button>
-                    <button class="control-button twist-button" data-face="R" data-direction="-1">R'</button>
-                    <button class="control-button twist-button" data-face="L" data-direction="1">L</button>
-                    <button class="control-button twist-button" data-face="L" data-direction="-1">L'</button>
-                    <button class="control-button twist-button" data-face="D" data-direction="1">D</button>
-                    <button class="control-button twist-button" data-face="D" data-direction="-1">D'</button>
-                    <button class="control-button twist-button" data-face="B" data-direction="1">B</button>
-                    <button class="control-button twist-button" data-face="B" data-direction="-1">B'</button>
+                    
                 </div>
                 <p class="user-id-display" id="currentUserId">Your User ID: Loading...</p>
             </div>
@@ -556,8 +541,18 @@
         let startTime = 0;
         let timerRunning = false; // Flag to indicate if timer is active
         let movesCount = 0;
-        let isDragging = false;
-        let previousMouse = { x: 0, y: 0 };
+
+        // Touch/Mouse Control Variables
+        let isDraggingCamera = false; // True if rotating camera (mouse or two-finger touch)
+        let isTwistingGesture = false; // True if a single-finger twist gesture is active
+        let startTouchX = 0;
+        let startTouchY = 0;
+        let initialCameraRotation = new THREE.Euler(); // Store camera rotation at start of touch
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let intersectedCubelet = null;
+        let intersectedFaceNormal = null;
+        let initialCubeletPosition = new THREE.Vector3(); // Position of the cubelet at touch start
 
         // DOM element for moves display
         const movesDisplay = document.getElementById('movesDisplay');
@@ -573,7 +568,7 @@
             INNER_FACE: new THREE.Color(0x000000) // Black for inner faces, or a very dark grey if no black is desired
         };
 
-        // Standard Rubik's cube face directions
+        // Standard Rubik's cube face directions (for reference in twistLayer)
         const FACE_DIRECTIONS = {
             'F': new THREE.Vector3(0, 0, 1),  // Front (+Z)
             'B': new THREE.Vector3(0, 0, -1), // Back (-Z)
@@ -586,7 +581,7 @@
         // Initial solved state of the cubelets (position and rotation)
         const initialCubeletStates = [];
 
-         /**
+        /**
          * Initializes the Three.js scene, camera, and renderer.
          */
         function initCube() {
@@ -596,12 +591,22 @@
                 return;
             }
 
-            // Get actual rendered dimensions from CSS
+            // Explicitly set canvas dimensions as attributes if not already set,
+            // or ensure they are consistent with CSS.
+            const desiredWidth = 500; // Consistent with CSS max-width
+            const desiredHeight = 400; // Consistent with CSS height
+
+            if (canvas.width === 0 || canvas.height === 0 || canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+                canvas.width = desiredWidth;
+                canvas.height = desiredHeight;
+                console.log(`Canvas attributes set to: ${canvas.width}x${canvas.height}`);
+            }
+
+            // Get actual rendered dimensions after setting attributes/CSS
             let canvasWidth = canvas.offsetWidth;
             let canvasHeight = canvas.offsetHeight;
 
             // Robust check: if dimensions are still zero, retry.
-            // This handles cases where layout might not be immediate, especially in iframes.
             if (canvasWidth === 0 || canvasHeight === 0) {
                 console.warn("Canvas offset dimensions are still zero. Retrying initCube in 100ms...");
                 setTimeout(initCube, 100); // Retry initialization after a short delay
@@ -611,12 +616,13 @@
             console.log(`Initializing Three.js renderer with dimensions: ${canvasWidth}x${canvasHeight}`);
 
             scene = new THREE.Scene();
-            // Set camera aspect based on actual rendered dimensions
             camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            // Set renderer size to match actual rendered dimensions
             renderer.setSize(canvasWidth, canvasHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
 
             // Add ambient light
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -644,8 +650,7 @@
             canvas.addEventListener('touchmove', onTouchMove, { passive: false });
             canvas.addEventListener('touchend', onTouchEnd);
 
-            // The window.addEventListener('resize', onWindowResize); is already correctly placed
-            // in the DOMContentLoaded listener, so no change needed here.
+            window.addEventListener('resize', onWindowResize);
 
             animate(); // Start the animation loop
         }
@@ -659,7 +664,6 @@
                 const currentWidth = canvas.offsetWidth;
                 const currentHeight = canvas.offsetHeight;
 
-                // Only update if dimensions are valid (not zero)
                 if (currentWidth > 0 && currentHeight > 0) {
                     camera.aspect = currentWidth / currentHeight;
                     camera.updateProjectionMatrix();
@@ -715,27 +719,24 @@
             });
 
             // Add numerical label to the cubelet
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+            const canvas2D = document.createElement('canvas'); // Renamed to avoid conflict with main canvas
+            const context = canvas2D.getContext('2d');
             const labelText = String(index);
             const fontSize = 48; // Adjust as needed
-            const padding = 10;
-            canvas.width = 128; // Fixed size for consistency
-            canvas.height = 128; // Fixed size for consistency
+            canvas2D.width = 128; // Fixed size for consistency
+            canvas2D.height = 128; // Fixed size for consistency
             context.font = `${fontSize}px Arial`;
             context.fillStyle = 'white'; // Label text color
             context.textAlign = 'center';
             context.textBaseline = 'middle';
-            context.fillText(labelText, canvas.width / 2, canvas.height / 2);
+            context.fillText(labelText, canvas2D.width / 2, canvas2D.height / 2);
 
-            const texture = new THREE.CanvasTexture(canvas);
+            const texture = new THREE.CanvasTexture(canvas2D);
             const material = new THREE.SpriteMaterial({ map: texture });
             const sprite = new THREE.Sprite(material);
 
-            // Position the sprite relative to the cubelet
-            // Scale the sprite so it's visible but not too large
             const spriteScale = 0.5; // Adjust this value
-            sprite.scale.set(spriteScale * (canvas.width / canvas.height), spriteScale, 1); // Maintain aspect ratio
+            sprite.scale.set(spriteScale * (canvas2D.width / canvas2D.height), spriteScale, 1); // Maintain aspect ratio
             sprite.position.set(0, 0, 0.5); // Position it slightly in front of the cubelet's center
 
             cubelet.add(sprite); // Add sprite as child of cubelet
@@ -790,12 +791,17 @@
                 return;
             }
 
-            // Only increment moves if the timer is running (i.e., it's part of a solve)
+            // Construct the move notation
+            let moveNotation = face;
+            if (direction === -1) {
+                moveNotation += "'";
+            }
+
+            // Only increment moves and record history if the timer is running (i.e., it's part of a solve)
             if (timerRunning) {
                 movesCount++;
-                if (movesDisplay) {
-                    movesDisplay.textContent = `Moves: ${movesCount}`;
-                }
+                moveHistory.push(moveNotation);
+                updateMovesDisplay(); // Update the display with the new move
             }
 
             const axis = new THREE.Vector3();
@@ -838,7 +844,7 @@
             if (axis.z !== 0) targetRotation.z += angle;
 
             const duration = 150; // milliseconds for animation
-            const animationStartTime = performance.now(); // Use a different variable name to avoid conflict with global startTime
+            const animationStartTime = performance.now();
 
             function animateTwist() {
                 const elapsed = performance.now() - animationStartTime;
@@ -851,20 +857,14 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateTwist);
                 } else {
-                    // After animation, apply rotation to individual cubelets and reset tempGroup
-                    // It's crucial to set the rotation of the tempGroup to the final target rotation
-                    // before detaching children, so their world transforms are correctly applied.
                     tempGroup.rotation.copy(targetRotation);
 
                     cubeletsToRotate.forEach(cubelet => {
-                        // Apply the rotation to the cubelet's position and rotation
                         cubelet.applyMatrix4(new THREE.Matrix4().makeRotationAxis(axis, angle));
-                        // Re-add cubelet to the main cubeGroup
-                        cubeGroup.attach(cubelet); // Use attach to maintain world transform
+                        cubeGroup.attach(cubelet);
                     });
-                    scene.remove(tempGroup); // Remove temporary group
+                    scene.remove(tempGroup);
 
-                    // Only check solved state if the timer is running (i.e., during an active solve)
                     if (timerRunning) {
                         checkSolved();
                     }
@@ -880,23 +880,23 @@
             stopTimer(); // Stop timer if running
             resetTimer(); // Reset timer and moves
             isSolved = false; // Cube is no longer solved
+            moveHistory = []; // Clear move history on scramble
+            updateMovesDisplay(); // Update display
 
             // Reset cubelets to their initial positions and rotations
             cubeGroup.children.forEach((cubelet) => {
-                // Find the corresponding initial state by comparing initialPosition
                 const originalCubeletState = initialCubeletStates.find(state =>
                     state.position.equals(cubelet.userData.initialPosition)
                 );
                 if (originalCubeletState) {
                     cubelet.position.copy(originalCubeletState.position);
-                    cubelet.quaternion.copy(originalCubeletState.quaternion); // Reset quaternion too
+                    cubelet.quaternion.copy(originalCubeletState.quaternion);
                 }
             });
 
             const moves = ['F', 'B', 'U', 'D', 'R', 'L'];
             const scrambleLength = 20; // A reasonable scramble length
 
-            // Generate a sequence of random twists
             const scrambleSequence = [];
             for (let i = 0; i < scrambleLength; i++) {
                 const randomFace = moves[Math.floor(Math.random() * moves.length)];
@@ -904,9 +904,7 @@
                 scrambleSequence.push({ face: randomFace, direction: randomDirection });
             }
 
-            // Apply the scramble with a small delay for visual effect
             scrambleSequence.forEach((move, i) => {
-                // Pass a special flag to twistLayer so it doesn't try to start the timer
                 setTimeout(() => twistLayer(move.face, move.direction, 'SCRAMBLE_INTERNAL'), i * 50);
             });
 
@@ -920,16 +918,17 @@
             stopTimer(); // Stop timer if running
             resetTimer(); // Reset timer and moves
             isSolved = true; // Cube is now solved
+            moveHistory = []; // Clear move history on reset
+            updateMovesDisplay(); // Update display
 
             // Reset cubelets to their initial positions and rotations
             cubeGroup.children.forEach((cubelet) => {
-                // Find the corresponding initial state by comparing initialPosition
                 const originalCubeletState = initialCubeletStates.find(state =>
                     state.position.equals(cubelet.userData.initialPosition)
                 );
                 if (originalCubeletState) {
                     cubelet.position.copy(originalCubeletState.position);
-                    cubelet.quaternion.copy(originalCubeletState.quaternion); // Reset quaternion too
+                    cubelet.quaternion.copy(originalCubeletState.quaternion);
                 }
             });
             showMessageBox("Cube reset to solved state.");
@@ -941,28 +940,20 @@
          */
         function checkSolved() {
             let solved = true;
-            // Iterate through all cubelets in the cubeGroup
             for (let i = 0; i < cubeGroup.children.length; i++) {
                 const cubelet = cubeGroup.children[i];
                 const initialPos = cubelet.userData.initialPosition;
                 const initialQuat = cubelet.userData.initialQuaternion;
 
-                // Check position: round current position to nearest integer for comparison
                 const currentPos = new THREE.Vector3(
                     Math.round(cubelet.position.x),
                     Math.round(cubelet.position.y),
                     Math.round(cubelet.position.z)
                 );
 
-                // Check both position AND quaternion (rotation)
-                // For quaternions, check if they represent the same orientation (q and -q are equivalent)
-                const quaternionTolerance = 0.001; // Small tolerance for floating point comparisons
-                const dotProduct = cubelet.quaternion.dot(initialQuat);
-                const isQuaternionEqual = Math.abs(dotProduct) > (1 - quaternionTolerance);
-
-                if (!currentPos.equals(initialPos) || !isQuaternionEqual) {
+                if (!currentPos.equals(initialPos) || !cubelet.quaternion.equals(initialQuat)) {
                     solved = false;
-                    break; // No need to check further if one is out of place or misoriented
+                    break;
                 }
             }
 
@@ -994,9 +985,8 @@
             startTime = performance.now();
             timerRunning = true; // Set flag to true
             movesCount = 0; // Reset moves count when timer starts
-            if (movesDisplay) {
-                movesDisplay.textContent = `Moves: ${movesCount}`;
-            }
+            moveHistory = []; // Clear move history when starting a new game
+            updateMovesDisplay(); // Clear display
             showMessageBox("Timer started! Good luck!");
         }
 
@@ -1017,10 +1007,9 @@
             if (timerDisplay) {
                 timerDisplay.textContent = '00:00.000';
             }
-            if (movesDisplay) {
-                movesDisplay.textContent = 'Moves: 0';
-            }
             isSolved = false; // Ensure cube is not marked as solved
+            moveHistory = []; // Clear move history
+            updateMovesDisplay(); // Clear display
         }
 
         /**
@@ -1033,57 +1022,292 @@
             }
         }
 
-        // --- Camera Controls (Mouse/Touch) ---
+        /**
+         * Updates the display with the current move history.
+         */
+        function updateMovesDisplay() {
+            const movesDisplayElement = document.getElementById('movesDisplay');
+            if (movesDisplayElement) {
+                movesDisplayElement.textContent = `Moves: ${movesCount}`; // Update to show current moves count
+            }
+        }
+
+        // --- Touch/Mouse Control Logic ---
+        const SWIPE_THRESHOLD = 30; // Minimum pixel distance for a swipe to register as a twist
+        const CAMERA_DRAG_THRESHOLD = 10; // Minimum pixel distance for a drag to register as camera rotation
+
         function onMouseDown(event) {
-            isDragging = true;
-            previousMouse.x = event.clientX;
-            previousMouse.y = event.clientY;
+            isDraggingCamera = true;
+            startTouchX = event.clientX;
+            startTouchY = event.clientY;
+            initialCameraRotation.copy(cubeGroup.rotation);
         }
 
         function onMouseMove(event) {
-            if (!isDragging) return;
+            if (!isDraggingCamera) return;
 
-            const deltaX = event.clientX - previousMouse.x;
-            const deltaY = event.clientY - previousMouse.y;
+            const deltaX = event.clientX - startTouchX;
+            const deltaY = event.clientY - startTouchY;
 
-            // Rotate the cubeGroup based on mouse movement
-            cubeGroup.rotation.y += deltaX * 0.005;
-            cubeGroup.rotation.x += deltaY * 0.005;
-
-            previousMouse.x = event.clientX;
-            previousMouse.y = event.clientY;
+            // Apply rotation based on mouse movement
+            cubeGroup.rotation.y = initialCameraRotation.y + deltaX * 0.005;
+            cubeGroup.rotation.x = initialCameraRotation.x + deltaY * 0.005;
         }
 
         function onMouseUp() {
-            isDragging = false;
+            isDraggingCamera = false;
         }
 
+        // Variables for touch twist detection
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoveX = 0;
+        let touchMoveY = 0;
+        let touchStartCubelet = null; // The cubelet initially touched
+        let touchStartFaceNormal = null; // The face normal of the initially touched cubelet
+
         function onTouchStart(event) {
+            event.preventDefault(); // Prevent scrolling and other default touch behaviors
+
             if (event.touches.length === 1) {
-                isDragging = true;
-                previousMouse.x = event.touches[0].clientX;
-                previousMouse.y = event.touches[0].clientY;
+                // Single finger: potential twist gesture
+                isTwistingGesture = true;
+                isDraggingCamera = false; // Ensure camera drag is off for single finger
+                touchStartX = event.touches[0].clientX;
+                touchStartY = event.touches[0].clientY;
+                touchMoveX = touchStartX; // Initialize move position
+                touchMoveY = touchStartY;
+
+                // Perform raycasting to identify touched cubelet and face
+                const canvas = renderer.domElement;
+                mouse.x = (event.touches[0].clientX / canvas.clientWidth) * 2 - 1;
+                mouse.y = -(event.touches[0].clientY / canvas.clientHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(cubeGroup.children);
+
+                if (intersects.length > 0) {
+                    intersectedCubelet = intersects[0].object;
+                    intersectedFaceNormal = intersects[0].face.normal.clone();
+                    initialCubeletPosition.copy(intersectedCubelet.position); // Store the cubelet's position
+                    // Convert face normal to world coordinates
+                    intersectedFaceNormal.applyQuaternion(intersectedCubelet.quaternion);
+                    intersectedFaceNormal.transformDirection(intersectedCubelet.matrixWorld);
+                    intersectedFaceNormal.normalize();
+
+                    console.log("Touch started on cubelet:", intersectedCubelet.userData.x, intersectedCubelet.userData.y, intersectedCubelet.userData.z);
+                    console.log("Touched face normal (world):", intersectedFaceNormal.x.toFixed(2), intersectedFaceNormal.y.toFixed(2), intersectedFaceNormal.z.toFixed(2));
+                } else {
+                    intersectedCubelet = null;
+                    intersectedFaceNormal = null;
+                }
+
+            } else if (event.touches.length === 2) {
+                // Two fingers: camera rotation
+                isDraggingCamera = true;
+                isTwistingGesture = false; // Ensure twist gesture is off for two fingers
+                startTouchX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+                startTouchY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+                initialCameraRotation.copy(cubeGroup.rotation);
             }
-            event.preventDefault(); // Prevent scrolling
         }
 
         function onTouchMove(event) {
-            if (!isDragging || event.touches.length !== 1) return;
-
-            const deltaX = event.touches[0].clientX - previousMouse.x;
-            const deltaY = event.touches[0].clientY - previousMouse.y;
-
-            cubeGroup.rotation.y += deltaX * 0.005;
-            cubeGroup.rotation.x += deltaY * 0.005;
-
-            previousMouse.x = event.touches[0].clientX;
-            previousMouse.y = event.touches[0].clientY;
             event.preventDefault(); // Prevent scrolling
+
+            if (isDraggingCamera && event.touches.length === 2) {
+                // Two-finger camera rotation
+                const currentAvgX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+                const currentAvgY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+
+                const deltaX = currentAvgX - startTouchX;
+                const deltaY = currentAvgY - startTouchY;
+
+                cubeGroup.rotation.y = initialCameraRotation.y + deltaX * 0.005;
+                cubeGroup.rotation.x = initialCameraRotation.x + deltaY * 0.005;
+
+            } else if (isTwistingGesture && event.touches.length === 1 && intersectedCubelet) {
+                // Single-finger twist gesture
+                touchMoveX = event.touches[0].clientX;
+                touchMoveY = event.touches[0].clientY;
+            }
         }
 
-        function onTouchEnd() {
-            isDragging = false;
+        function onTouchEnd(event) {
+            if (isTwistingGesture && intersectedCubelet) {
+                const deltaX = touchMoveX - touchStartX;
+                const deltaY = touchMoveY - touchStartY;
+
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+
+                // Only register a twist if swipe is significant
+                if (absDeltaX > SWIPE_THRESHOLD || absDeltaY > SWIPE_THRESHOLD) {
+                    let face = '';
+                    let direction = 0;
+
+                    // Determine the primary axis of the swipe
+                    const isHorizontalSwipe = absDeltaX > absDeltaY;
+
+                    // Normalize the touched face normal to align with cube's axes
+                    const worldNormal = new THREE.Vector3().copy(intersectedFaceNormal);
+
+                    // Determine which face/layer to twist based on the touched face normal and swipe direction
+                    // This logic is a heuristic and might need fine-tuning for perfect intuition.
+
+                    // Front/Back faces (normal Z-axis)
+                    if (Math.abs(worldNormal.z) > Math.abs(worldNormal.x) && Math.abs(worldNormal.z) > Math.abs(worldNormal.y)) {
+                        if (worldNormal.z > 0) { // Front face
+                            if (isHorizontalSwipe) {
+                                // Horizontal swipe on Front face -> U or D layer
+                                if (initialCubeletPosition.y > 0.5) { // Top row
+                                    face = 'U'; direction = deltaX > 0 ? -1 : 1; // Right swipe U', Left swipe U
+                                } else if (initialCubeletPosition.y < -0.5) { // Bottom row
+                                    face = 'D'; direction = deltaX > 0 ? 1 : -1; // Right swipe D, Left swipe D'
+                                }
+                            } else {
+                                // Vertical swipe on Front face -> R or L layer
+                                if (initialCubeletPosition.x > 0.5) { // Right column
+                                    face = 'R'; direction = deltaY > 0 ? 1 : -1; // Down swipe R, Up swipe R'
+                                } else if (initialCubeletPosition.x < -0.5) { // Left column
+                                    face = 'L'; direction = deltaY > 0 ? -1 : 1; // Down swipe L', Up swipe L
+                                }
+                            }
+                        } else { // Back face
+                            if (isHorizontalSwipe) {
+                                if (initialCubeletPosition.y > 0.5) { // Top row
+                                    face = 'U'; direction = deltaX > 0 ? 1 : -1; // Right swipe U, Left swipe U' (opposite of Front)
+                                } else if (initialCubeletPosition.y < -0.5) { // Bottom row
+                                    face = 'D'; direction = deltaX > 0 ? -1 : 1; // Right swipe D', Left swipe D (opposite of Front)
+                                }
+                            } else {
+                                if (initialCubeletPosition.x > 0.5) { // Right column
+                                    face = 'R'; direction = deltaY > 0 ? -1 : 1; // Down swipe R', Up swipe R (opposite of Front)
+                                } else if (initialCubeletPosition.x < -0.5) { // Left column
+                                    face = 'L'; direction = deltaY > 0 ? 1 : -1; // Down swipe L, Up swipe L' (opposite of Front)
+                                }
+                            }
+                        }
+                    }
+                    // Up/Down faces (normal Y-axis)
+                    else if (Math.abs(worldNormal.y) > Math.abs(worldNormal.x) && Math.abs(worldNormal.y) > Math.abs(worldNormal.z)) {
+                        if (worldNormal.y > 0) { // Up face
+                            if (isHorizontalSwipe) {
+                                // Horizontal swipe on Up face -> F or B layer
+                                if (initialCubeletPosition.z > 0.5) { // Front column
+                                    face = 'F'; direction = deltaX > 0 ? 1 : -1; // Right swipe F, Left swipe F'
+                                } else if (initialCubeletPosition.z < -0.5) { // Back column
+                                    face = 'B'; direction = deltaX > 0 ? -1 : 1; // Right swipe B', Left swipe B
+                                }
+                            } else {
+                                // Vertical swipe on Up face -> R or L layer
+                                if (initialCubeletPosition.x > 0.5) { // Right column
+                                    face = 'R'; direction = deltaY > 0 ? -1 : 1; // Down swipe R', Up swipe R
+                                } else if (initialCubeletPosition.x < -0.5) { // Left column
+                                    face = 'L'; direction = deltaY > 0 ? 1 : -1; // Down swipe L, Up swipe L'
+                                }
+                            }
+                        } else { // Down face
+                            if (isHorizontalSwipe) {
+                                if (initialCubeletPosition.z > 0.5) { // Front column
+                                    face = 'F'; direction = deltaX > 0 ? -1 : 1; // Right swipe F', Left swipe F
+                                } else if (initialCubeletPosition.z < -0.5) { // Back column
+                                    face = 'B'; direction = deltaX > 0 ? 1 : -1; // Right swipe B, Left swipe B'
+                                }
+                            } else {
+                                if (initialCubeletPosition.x > 0.5) { // Right column
+                                    face = 'R'; direction = deltaY > 0 ? 1 : -1; // Down swipe R, Up swipe R'
+                                } else if (initialCubeletPosition.x < -0.5) { // Left column
+                                    face = 'L'; direction = deltaY > 0 ? -1 : 1; // Down swipe L', Up swipe L
+                                }
+                            }
+                        }
+                    }
+                    // Right/Left faces (normal X-axis)
+                    else if (Math.abs(worldNormal.x) > Math.abs(worldNormal.y) && Math.abs(worldNormal.x) > Math.abs(worldNormal.z)) {
+                        if (worldNormal.x > 0) { // Right face
+                            if (isHorizontalSwipe) {
+                                // Horizontal swipe on Right face -> U or D layer
+                                if (initialCubeletPosition.y > 0.5) { // Top row
+                                    face = 'U'; direction = deltaX > 0 ? 1 : -1; // Right swipe U, Left swipe U'
+                                } else if (initialCubeletPosition.y < -0.5) { // Bottom row
+                                    face = 'D'; direction = deltaX > 0 ? -1 : 1; // Right swipe D', Left swipe D
+                                }
+                            } else {
+                                // Vertical swipe on Right face -> F or B layer
+                                if (initialCubeletPosition.z > 0.5) { // Front column
+                                    face = 'F'; direction = deltaY > 0 ? -1 : 1; // Down swipe F', Up swipe F
+                                } else if (initialCubeletPosition.z < -0.5) { // Back column
+                                    face = 'B'; direction = deltaY > 0 ? 1 : -1; // Down swipe B, Up swipe B'
+                                }
+                            }
+                        } else { // Left face
+                            if (isHorizontalSwipe) {
+                                if (initialCubeletPosition.y > 0.5) { // Top row
+                                    face = 'U'; direction = deltaX > 0 ? -1 : 1; // Right swipe U', Left swipe U
+                                } else if (initialCubeletPosition.y < -0.5) { // Bottom row
+                                    face = 'D'; direction = deltaX > 0 ? 1 : -1; // Right swipe D, Left swipe D'
+                                }
+                            } else {
+                                if (initialCubeletPosition.z > 0.5) { // Front column
+                                    face = 'F'; direction = deltaY > 0 ? 1 : -1; // Down swipe F, Up swipe F'
+                                } else if (initialCubeletPosition.z < -0.5) { // Back column
+                                    face = 'B'; direction = deltaY > 0 ? -1 : 1; // Down swipe B', Up swipe B
+                                }
+                            }
+                        }
+                    }
+
+                    if (face && direction !== 0) {
+                        twistLayer(face, direction);
+                    }
+                }
+            }
+            isDraggingCamera = false;
+            isTwistingGesture = false;
+            intersectedCubelet = null;
+            intersectedFaceNormal = null;
         }
+
+        // --- Event Listeners for Buttons ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFirebase();
+
+            const checkElementsAndInit = () => {
+                const canvas = document.getElementById('stubeCanvas');
+                const commentsSection = document.getElementById('commentsSection');
+                const scrambleButton = document.getElementById('scrambleButton');
+                const startButton = document.getElementById('startButton');
+                const resetButton = document.getElementById('resetButton');
+                const movesDisplayElement = document.getElementById('movesDisplay');
+
+                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplayElement) {
+                    console.log("All required DOM elements found. Initializing cube and listeners.");
+                    initCube();
+
+                    scrambleButton.addEventListener('click', scrambleCube);
+                    startButton.addEventListener('click', startTimer);
+                    resetButton.addEventListener('click', resetCube);
+
+                    // Twist buttons are now removed, so this part is no longer needed
+                    // document.querySelectorAll('.twist-button').forEach(button => {
+                    //     button.addEventListener('click', (event) => {
+                    //         const face = event.target.dataset.face;
+                    //         const direction = parseInt(event.target.dataset.direction);
+                    //         twistLayer(face, direction);
+                    //     });
+                    // });
+
+                    scheduleHourlyReset();
+
+                } else {
+                    console.log("Waiting for all required DOM elements to be available...");
+                    setTimeout(checkElementsAndInit, 50);
+                }
+            };
+
+            checkElementsAndInit();
+        });
 
         // --- Event Listeners for Buttons ---
         document.addEventListener('DOMContentLoaded', () => {
