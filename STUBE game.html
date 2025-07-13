@@ -51,16 +51,17 @@
         }
 
         #stubeCanvas {
-            display: block;
-            width: 100%; /* Make canvas fluid */
-            max-width: 500px; /* Max width for larger screens */
-            height: 400px; /* Fixed height for consistency, consider dynamic if needed */
-            border-radius: 12px;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-            background-color: #4a5568; /* Canvas background */
-            touch-action: none; /* Prevent default touch actions like scrolling */
-            margin-bottom: 20px;
-        }
+    display: block;
+    /* Set explicit fixed dimensions that Three.js can rely on */
+    width: 500px; /* Set a fixed width */
+    height: 400px; /* Keep fixed height */
+    max-width: 100%; /* Ensure it's still responsive and doesn't overflow smaller screens */
+    border-radius: 12px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    background-color: #4a5568; /* Canvas background */
+    touch-action: none; /* Prevent default touch actions like scrolling */
+    margin-bottom: 20px;
+}
 
         .control-panel {
             display: flex;
