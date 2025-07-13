@@ -526,16 +526,31 @@
                 return;
             }
 
-            // Attempt to get actual rendered dimensions
+            // Explicitly set canvas dimensions as attributes if not already set,
+            // or ensure they are consistent with CSS.
+            // This is a fallback to ensure Three.js gets proper dimensions.
+            const desiredWidth = 500; // Consistent with CSS max-width
+            const desiredHeight = 400; // Consistent with CSS height
+
+            if (canvas.width === 0 || canvas.height === 0 || canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+                canvas.width = desiredWidth;
+                canvas.height = desiredHeight;
+                console.log(`Canvas attributes set to: ${canvas.width}x${canvas.height}`);
+            }
+
+            // Get actual rendered dimensions after setting attributes/CSS
             let canvasWidth = canvas.offsetWidth;
             let canvasHeight = canvas.offsetHeight;
 
-            // Fallback if dimensions are still zero (can happen in iframes)
+            // Robust check: if dimensions are still zero, retry.
+            // This handles cases where layout might not be immediate.
             if (canvasWidth === 0 || canvasHeight === 0) {
-                console.warn("Canvas dimensions are zero. Retrying initCube in 50ms...");
-                setTimeout(initCube, 50); // Retry initialization after a short delay
+                console.warn("Canvas offset dimensions are still zero. Retrying initCube in 100ms...");
+                setTimeout(initCube, 100); // Increased delay slightly
                 return;
             }
+
+            console.log(`Initializing Three.js renderer with dimensions: ${canvasWidth}x${canvasHeight}`);
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 1000);
@@ -543,7 +558,9 @@
             renderer.setSize(canvasWidth, canvasHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
 
-            // Ensure the renderer's DOM element (the canvas) fills its container
+            // Ensure the renderer's DOM element (the canvas itself) fills its container
+            // This is usually redundant if canvas.width/height are set and CSS is correct,
+            // but can act as a safeguard.
             renderer.domElement.style.width = '100%';
             renderer.domElement.style.height = '100%';
 
