@@ -11,18 +11,17 @@
             margin: 0;
             overflow: hidden; /* Hide scrollbars */
             font-family: "Inter", sans-serif;
-            background-color: #1a202c; /* Dark background */
+            background-color: #f0f0f0; /* Page background */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #e2e8f0;
+            color: #1a202c; /* Dark text for contrast on light background */
         }
         canvas {
             display: block;
-            background-color: #2d3748; /* Slightly lighter dark background for canvas */
+            background-color: #96afc8; /* Updated background color for the cube window */
             border-radius: 1rem; /* Rounded corners for canvas */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             width: 100%; /* Take full width of parent */
             height: 100%; /* Take full height of parent */
             max-width: 90vw; /* Max width relative to viewport */
@@ -41,8 +40,8 @@
         button {
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
-            background-color: #4a5568; /* Darker button background */
-            color: #e2e8f0;
+            background-color: #cbd5e0; /* Lighter button background for light page */
+            color: #2d3748; /* Darker text for buttons */
             border: none;
             cursor: pointer;
             transition: background-color 0.2s, transform 0.1s;
@@ -50,20 +49,33 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         button:hover {
-            background-color: #636b77; /* Lighter on hover */
+            background-color: #a0aec0; /* Even lighter on hover */
             transform: translateY(-1px);
         }
         button:active {
-            background-color: #2d3748; /* Even darker on active */
+            background-color: #718096; /* Darker on active */
             transform: translateY(0);
+        }
+        .info-display {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+            justify-content: center;
+            gap: 1rem 2rem; /* Row gap, column gap */
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-align: center; /* Center text within each info item */
+        }
+        .info-item {
+            min-width: 150px; /* Ensure items have a minimum width */
         }
         .message-box {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #2d3748;
-            color: #e2e8f0;
+            background-color: #cbd5e0; /* Lighter background for message box */
+            color: #2d3748; /* Darker text for message box */
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -73,21 +85,182 @@
         }
         .message-box button {
             margin-top: 15px;
-            background-color: #4a5568;
-            color: #e2e8f0;
+            background-color: #a0aec0; /* Lighter button for message box */
+            color: #2d3748;
             padding: 8px 15px;
             border-radius: 5px;
             cursor: pointer;
         }
+        #userIdDisplay {
+            font-size: 0.9rem; /* Smaller font for user ID */
+            word-break: break-all; /* Allow long IDs to break lines */
+            max-width: 250px; /* Limit width of ID display */
+            margin: 0 auto; /* Center the ID */
+        }
+        .leaderboard-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #e2e8f0; /* Slightly darker background for leaderboard */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 90vw;
+            max-width: 600px;
+            text-align: center;
+        }
+        .leaderboard-container h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .leaderboard-container p {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: #4a5568;
+        }
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .leaderboard-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #cbd5e0;
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        .leaderboard-list li:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-list li span {
+            flex: 1;
+            text-align: left;
+            word-break: break-all; /* Allow long user IDs to wrap */
+        }
+        .leaderboard-list li span:nth-child(2),
+        .leaderboard-list li span:nth-child(3) {
+            text-align: right;
+        }
     </style>
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables accessible by other scripts
+        window.firebaseApp = null;
+        window.firebaseAuth = null;
+        window.firebaseDb = null; // Added Firestore instance
+        window.currentUserId = null;
+        window.isFirebaseReady = false; // Flag to indicate Firebase is initialized and auth state is known
+
+        // Make Firestore functions globally accessible
+        window.fsCollection = collection;
+        window.fsAddDoc = addDoc;
+        window.fsOnSnapshot = onSnapshot;
+        window.fsQuery = query;
+        window.fsWhere = where;
+        window.fsServerTimestamp = serverTimestamp;
+
+
+        // Initialize Firebase
+        // IMPORTANT: When deploying this code to an external host (like GitHub Pages),
+        // the __app_id, __firebase_config, and __initial_auth_token variables will NOT be available.
+        // You MUST replace the placeholder for externalFirebaseConfig with your actual Firebase project's config object.
+        // You can find this in your Firebase project settings -> "Project settings" -> "General" -> "Your apps" -> "Web app" (look for "Config").
+
+        // Define a default/external Firebase config. User needs to fill this in for external deployment.
+        const externalFirebaseConfig = {
+            apiKey: "AIzaSyCjNwb7BJtwso0Gx-Zv_bB2kBGaxzRfxxw", // Replace with your actual API Key
+            authDomain: "stube0.firebaseapp.com", // Replace with your actual Auth Domain
+            projectId: "stube0", // Replace with your actual Project ID
+            storageBucket: "stube0.firebasestorage.app", // Replace with your actual Storage Bucket
+            messagingSenderId: "974775896350", // Replace with your actual Messaging Sender ID
+            appId: "1:974775896350:web:1f89446c0ef9f7093c210f", // Replace with your actual App ID
+            measurementId: "G-P6HXCM52LX" // Optional, replace with your actual Measurement ID
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'stube-cube-public-app'; // Use a default for external deployment
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // This will be null for external deployment
+
+        // Determine the Firebase config to use: Canvas-provided or external/default
+        const firebaseConfig = typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0
+            ? JSON.parse(__firebase_config)
+            : externalFirebaseConfig;
+
+        // --- START: Firebase Initialization Logic ---
+        // This block handles both Canvas environment and external deployment.
+        if (Object.keys(firebaseConfig).length > 0) {
+            // Running in Canvas environment (config is provided)
+            window.firebaseApp = initializeApp(firebaseConfig);
+            window.firebaseAuth = getAuth(window.firebaseApp);
+            window.firebaseDb = getFirestore(window.firebaseApp);
+
+            onAuthStateChanged(window.firebaseAuth, async (user) => {
+                if (user) {
+                    window.currentUserId = user.uid;
+                    document.getElementById('userIdDisplay').textContent = `User ID: ${window.currentUserId}`;
+                    console.log("Firebase user signed in:", user.uid);
+                    window.isFirebaseReady = true;
+                    if (typeof fetchLeaderboard === 'function') {
+                        fetchLeaderboard();
+                    }
+                } else {
+                    console.log("No Firebase user signed in. Attempting anonymous sign-in...");
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(window.firebaseAuth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(window.firebaseAuth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase authentication error:", error);
+                        showMessageBox("Error: Could not authenticate user. Leaderboard features may not work.");
+                        window.isFirebaseReady = true;
+                    }
+                }
+            });
+        } else {
+            // Running externally (firebaseConfig is empty, need manual setup or anonymous sign-in)
+            console.warn("Firebase config not found. Running without Firebase authentication and leaderboard unless manually configured.");
+            document.getElementById('userIdDisplay').textContent = `User ID: (Not Authenticated)`;
+
+            // If Firebase is not manually configured above, generate a temporary client-side ID
+            if (!window.currentUserId) { // Only if not set by Firebase init above
+                window.currentUserId = `guest-${crypto.randomUUID()}`; // Use full UUID for uniqueness
+                document.getElementById('userIdDisplay').textContent = `User ID: ${window.currentUserId}`;
+                window.isFirebaseReady = true; // Game can proceed without Firebase
+            }
+        }
+        // --- END: Firebase Initialization Logic ---
+    </script>
 </head>
 <body>
-    <h1 class="text-3xl font-bold mb-4">3D STUBE Cube</h1>
+    <div class="info-display">
+        <div class="info-item" id="timerDisplay">Time: 00:00.000000</div>
+        <div class="info-item" id="movesDisplay">Moves: 0</div>
+        <div class="info-item" id="userIdDisplay">User ID: Loading...</div>
+    </div>
+
     <canvas id="stubeCubeCanvas"></canvas>
 
     <div class="controls-container">
-        <button onclick="scrambleCube()">Scramble Cube</button>
-        <button onclick="resetCube()">Reset Cube</button>
+        <button onclick="scrambleCube()">scramble</button>
+        <button onclick="resetCube()">reset</button>
+    </div>
+
+    <div class="leaderboard-container">
+        <h2 id="competitionIdDisplay">Current Competition: Loading...</h2>
+        <ul id="leaderboardList" class="leaderboard-list">
+            <li><span>Rank</span><span>User ID</span><span>Time</span><span>Moves</span></li>
+            <!-- Leaderboard entries will be inserted here by JavaScript -->
+            <li><span>1.</span><span>---</span><span>--:--.------</span><span>--</span></li>
+            <li><span>2.</span><span>---</span><span>--:--.------</span><span>--</span></li>
+            <li><span>3.</span><span>---</span><span>--:--.------</span><span>--</span></li>
+        </ul>
     </div>
 
     <div id="messageBox" class="message-box">
@@ -96,14 +269,12 @@
     </div>
 
     <!-- Three.js and OrbitControls Libraries -->
-    <!-- Using Three.js r128 and its corresponding OrbitControls.js from examples/js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- This specific OrbitControls.js version is designed to attach to the global THREE object -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <!-- Main script for the cube logic -->
     <script>
-        // Function to display messages to the user
+        // --- Utility Functions for UI ---
         function showMessageBox(message) {
             const messageBox = document.getElementById('messageBox');
             const messageText = document.getElementById('messageText');
@@ -121,32 +292,187 @@
         const cubelets = []; // Array to hold all 27 small cubes
         const cubeletGap = 0.05; // Small gap between cubelets for visual separation
         const animationDuration = 200; // milliseconds for rotation animation
+        const tolerance = 0.001; // Small tolerance for floating point comparisons in solved check
 
-        // STUBE Cube colors: lemon yellow, lime green, and baby blue
+        // Global variables for interaction (mouse/touch drag)
+        let isDraggingFace = false;
+        let startPointerX = 0;
+        let startPointerY = 0;
+        let intersectedCubelet = null;
+        let intersectedFaceNormal = null; // Normal of the face that was clicked, in world coordinates
+        let initialIntersectionPoint = new THREE.Vector3(); // Point on the cubelet face where drag started
+        const dragThresholdPixels = 20; // Pixels to consider a drag for initiating a rotation
+        const dragThresholdWorld = 0.1; // World units to consider a drag for initiating a rotation
+
+        // Store initial screen coordinates for drag
+        let initialPointerScreenX = 0;
+        let initialPointerScreenY = 0;
+
+        // STUBE Cube colors: lemonlime, sky blue, white, banana, gray, orange
         const stubeColors = {
-            lemonYellow: 0xFFF44F, // Used for Up and Down faces
-            limeGreen: 0x32CD32,   // Used for Front and Back faces
-            babyBlue: 0x89CFF0,    // Used for Left and Right faces
-            black: 0x000000        // Inner faces
+            white: 0xFFFFFF,    // Up face
+            banana: 0xFFC800,   // Down face
+            skyBlue: 0x64C8FF,  // Front face
+            lemonlime: 0x00FF00, // Back face
+            orange: 0xFF821E,   // Right face
+            gray: 0xFDFDFD,     // Left face
+            black: 0x000000     // Inner faces
         };
 
+        // --- Game State Variables ---
+        let timerInterval = null;
+        let startTime = 0;
+        let elapsedTime = 0; // Stored in milliseconds, but performance.now() can give microsecond precision
+        let moveCount = 0;
+        let gameStarted = false; // Flag to indicate if the timer should be running
+
+        // --- UI Update Functions ---
+        function updateTimerDisplay() {
+            // elapsedTime is in milliseconds with microsecond precision
+            const totalSeconds = elapsedTime / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            const fractionalPart = totalSeconds - Math.floor(totalSeconds);
+            const microseconds = Math.floor(fractionalPart * 1000000); // Convert fractional seconds to microseconds
+
+            const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(microseconds).padStart(6, '0')}`;
+            document.getElementById('timerDisplay').textContent = `Time: ${formattedTime}`;
+        }
+
+        function updateMovesDisplay() {
+            document.getElementById('movesDisplay').textContent = `Moves: ${moveCount}`;
+        }
+
+        function startTimer() {
+            if (!gameStarted) {
+                gameStarted = true;
+                startTime = performance.now() - elapsedTime; // Adjust for any pre-existing elapsed time
+                timerInterval = setInterval(() => {
+                    elapsedTime = performance.now() - startTime;
+                    updateTimerDisplay();
+                }, 1); // Update every 1 millisecond for highest possible resolution
+            }
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            gameStarted = false;
+        }
+
+        function resetTimer() {
+            stopTimer();
+            elapsedTime = 0;
+            updateTimerDisplay();
+        }
+
+        function incrementMoveCount() {
+            moveCount++;
+            updateMovesDisplay();
+            if (!gameStarted) {
+                startTimer(); // Start timer on first move
+            }
+        }
+
+        function resetMoveCount() {
+            moveCount = 0;
+            updateMovesDisplay();
+        }
+
+        /**
+         * Creates a CanvasTexture with a number or emoji drawn on it.
+         * @param {number|string} content - The number or string (e.g., 'koala_logo') to draw.
+         * @param {string} color - Text/emoji color (e.g., '#000000').
+         * @param {number} bgColor - Background color in hex (e.g., 0xFFF44F).
+         * @returns {THREE.CanvasTexture} The created texture.
+         */
+        function createNumberTexture(content, color = '#000000', bgColor) {
+            const canvas = document.createElement('canvas');
+            const size = 128; // Power of 2 for texture resolution
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d');
+
+            // Convert hex color to CSS string for fillStyle
+            const cssBgColor = '#' + bgColor.toString(16).padStart(6, '0');
+            context.fillStyle = cssBgColor;
+            context.fillRect(0, 0, size, size);
+
+            if (content === 'koala_logo') {
+                context.font = `Bold ${size * 0.7}px Arial`; // Larger font for emoji
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText('🐨', size / 2, size / 2 + size * 0.05); // Koala emoji, slightly adjusted for vertical centering
+            } else {
+                context.font = `Bold ${size * 0.4}px Arial`; // Font size relative to canvas size
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillStyle = color;
+                context.fillText(content.toString(), size / 2, size / 2);
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
         // Function to create a single cubelet (small cube)
-        function createCubelet(x, y, z) {
-            const geometry = new THREE.BoxGeometry(1, 1, 1); // Each cubelet is 1x1x1
+        function createCubelet(x, y, z, id) {
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
             // Define materials for each face (Right, Left, Top, Bottom, Front, Back)
-            const materials = [
-                new THREE.MeshLambertMaterial({ color: (x === 1) ? stubeColors.babyBlue : stubeColors.black }),   // Right (+X)
-                new THREE.MeshLambertMaterial({ color: (x === -1) ? stubeColors.babyBlue : stubeColors.black }),  // Left (-X)
-                new THREE.MeshLambertMaterial({ color: (y === 1) ? stubeColors.lemonYellow : stubeColors.black }),  // Top (+Y)
-                new THREE.MeshLambertMaterial({ color: (y === -1) ? stubeColors.lemonYellow : stubeColors.black }), // Bottom (-Y)
-                new THREE.MeshLambertMaterial({ color: (z === 1) ? stubeColors.limeGreen : stubeColors.black }),    // Front (+Z)
-                new THREE.MeshLambertMaterial({ color: (z === -1) ? stubeColors.limeGreen : stubeColors.black })  // Back (-Z)
+            const materials = [];
+            const faceColors = [
+                (x === 1) ? stubeColors.orange : stubeColors.black,   // Right (+X)
+                (x === -1) ? stubeColors.gray : stubeColors.black,  // Left (-X)
+                (y === 1) ? stubeColors.white : stubeColors.black,  // Top (+Y)
+                (y === -1) ? stubeColors.banana : stubeColors.black, // Bottom (-Y)
+                (z === 1) ? stubeColors.skyBlue : stubeColors.black,    // Front (+Z)
+                (z === -1) ? stubeColors.lemonlime : stubeColors.black   // Back (-Z)
             ];
+
+            // Determine which face gets the number for outer cubelets
+            let numberedFaceIndex = -1;
+            let numberedFaceColor = stubeColors.black; // Default for inner faces or center cube
+            let textureContent = id; // Default content is the cubelet ID
+
+            // Prioritize X, then Y, then Z for numbering exposed faces
+            if (x === 1) { numberedFaceIndex = 0; numberedFaceColor = stubeColors.orange; } // Right
+            else if (x === -1) { numberedFaceIndex = 1; numberedFaceColor = stubeColors.gray; } // Left
+            else if (y === 1) { numberedFaceIndex = 2; numberedFaceColor = stubeColors.white; } // Top
+            else if (y === -1) { numberedFaceIndex = 3; numberedFaceColor = stubeColors.banana; } // Bottom
+            else if (z === 1) { numberedFaceIndex = 4; numberedFaceColor = stubeColors.skyBlue; } // Front
+            else if (z === -1) { numberedFaceIndex = 5; numberedFaceColor = stubeColors.lemonlime; } // Back
+
+            // Special case for cubelet #27 (front-top-right)
+            if (id === 27) {
+                // Cubelet #27 is at (1, 1, 1) - its exposed faces are Right, Top, Front.
+                // Based on the priority logic above, its number will be on the Right face (index 0).
+                numberedFaceIndex = 0; // Right face
+                numberedFaceColor = stubeColors.orange; // Color of the Right face
+                textureContent = 'koala_logo'; // Use the special string for koala logo
+            }
+
+
+            for (let i = 0; i < 6; i++) {
+                // The center cubelet (0,0,0) will have id 14 in this numbering scheme and no exposed faces
+                if (i === numberedFaceIndex && id !== 14) {
+                    // Apply number or koala texture to the determined exposed face
+                    materials.push(new THREE.MeshLambertMaterial({ map: createNumberTexture(textureContent, '#000000', numberedFaceColor) })); // Black text/emoji for numbers
+                } else {
+                    // Use regular color material for other faces or the center cubelet
+                    materials.push(new THREE.MeshLambertMaterial({ color: faceColors[i] }));
+                }
+            }
 
             const cubelet = new THREE.Mesh(geometry, materials);
             // Position cubelet based on its grid coordinates
             cubelet.position.set(x * (1 + cubeletGap), y * (1 + cubeletGap), z * (1 + cubeletGap));
-            cubelet.userData = { initialPos: new THREE.Vector3(x, y, z), currentPos: new THREE.Vector3(x, y, z) }; // Store original and current grid position
+            // Store original and current grid position, and its initial quaternion for solved check
+            cubelet.userData = {
+                initialPos: new THREE.Vector3(x, y, z),
+                currentPos: new THREE.Vector3(x, y, z),
+                initialQuaternion: new THREE.Quaternion(), // Store initial rotation (identity)
+                id: id // Store the unique ID for this cubelet
+            };
             scene.add(cubelet);
             return cubelet;
         }
@@ -156,9 +482,6 @@
             const canvas = document.getElementById('stubeCubeCanvas');
 
             // Ensure THREE.js is loaded and its core components are available
-            console.log("DEBUG: init() called. Checking THREE availability.");
-            console.log("DEBUG: typeof THREE:", typeof THREE);
-            console.log("DEBUG: typeof THREE.Scene:", typeof THREE.Scene);
             if (typeof THREE === 'undefined' || typeof THREE.Scene === 'undefined') {
                 console.error("ERROR: THREE.js core library not found or not fully loaded. Please check the script tag for three.min.js and your network connection.");
                 showMessageBox("Error: THREE.js core library not loaded.");
@@ -166,7 +489,6 @@
             }
 
             // Ensure OrbitControls is loaded and attached to THREE
-            console.log("DEBUG: init() checking typeof THREE.OrbitControls:", typeof THREE.OrbitControls);
             if (typeof THREE.OrbitControls === 'undefined') {
                 console.error("ERROR: THREE.OrbitControls not found. Please check the script tag for OrbitControls.js from examples/js and its compatibility with THREE.js version.");
                 showMessageBox("Error: OrbitControls library not loaded or accessible.");
@@ -188,19 +510,20 @@
             directionalLight.position.set(5, 5, 5).normalize();
             scene.add(directionalLight);
 
-            // Create 27 cubelets
+            // Create 27 cubelets with unique IDs
+            let cubeletId = 1;
             for (let x = -1; x <= 1; x++) {
                 for (let y = -1; y <= 1; y++) {
                     for (let z = -1; z <= 1; z++) {
-                        cubelets.push(createCubelet(x, y, z));
+                        cubelets.push(createCubelet(x, y, z, cubeletId++));
                     }
                 }
             }
 
             camera.position.z = 5; // Initial camera position
+            camera.lookAt(scene.position); // Ensure camera is looking at the center of the scene
 
-            // At this point, we are confident THREE and THREE.OrbitControls should be available.
-            // Instantiate OrbitControls directly.
+            // Instantiate OrbitControls
             try {
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true; // smooth camera movement
@@ -217,6 +540,13 @@
             // Handle window resizing
             window.addEventListener('resize', onWindowResize, false);
             onWindowResize(); // Initial call to set size
+
+            // Add interaction listeners for cubelet rotation
+            addInteractionListeners();
+
+            // Initialize displays
+            updateTimerDisplay();
+            updateMovesDisplay();
 
             animate(); // Start the animation loop
         }
@@ -250,11 +580,12 @@
 
         /**
          * Rotates a specific face of the STUBE Cube.
-         * This function is used internally by scrambleCube and resetCube.
+         * This function is used internally by scrambleCube and by user interaction.
          * @param {string} face - 'U', 'D', 'L', 'R', 'F', 'B'
          * @param {boolean} prime - True for counter-clockwise (prime) rotation, false for clockwise.
+         * @param {boolean} isUserMove - True if this rotation is initiated by user interaction.
          */
-        function rotateFace(face, prime) {
+        function rotateFace(face, prime, isUserMove = true) {
             if (isAnimating) return; // Prevent rotation if another animation is in progress
             isAnimating = true;
 
@@ -262,42 +593,33 @@
             let value; // The coordinate value that defines the layer
             let rotationAngle = Math.PI / 2; // 90 degrees in radians
 
-            if (prime) {
-                rotationAngle *= -1; // Counter-clockwise
-            }
+            // Define standard rotation axes for each face (right-hand rule for positive rotation)
+            const rotationAxes = {
+                'U': new THREE.Vector3(0, 1, 0),
+                'D': new THREE.Vector3(0, -1, 0),
+                'R': new THREE.Vector3(1, 0, 0),
+                'L': new THREE.Vector3(-1, 0, 0),
+                'F': new THREE.Vector3(0, 0, 1),
+                'B': new THREE.Vector3(0, 0, -1)
+            };
 
-            // Determine axis and layer value based on face
+            axis = rotationAxes[face];
+
+            // Determine the value for the layer based on the face
             switch (face) {
-                case 'U': // Up face (Y-axis, y=1)
-                    axis = new THREE.Vector3(0, 1, 0);
-                    value = 1;
-                    break;
-                case 'D': // Down face (Y-axis, y=-1)
-                    axis = new THREE.Vector3(0, 1, 0);
-                    value = -1;
-                    rotationAngle *= -1; // D and D' are opposite to U and U'
-                    break;
-                case 'L': // Left face (X-axis, x=-1)
-                    axis = new THREE.Vector3(1, 0, 0);
-                    value = -1;
-                    rotationAngle *= -1; // L and L' are opposite to R and R'
-                    break;
-                case 'R': // Right face (X-axis, x=1)
-                    axis = new THREE.Vector3(1, 0, 0);
-                    value = 1;
-                    break;
-                case 'F': // Front face (Z-axis, z=1)
-                    axis = new THREE.Vector3(0, 0, 1);
-                    value = 1;
-                    break;
-                case 'B': // Back face (Z-axis, z=-1)
-                    axis = new THREE.Vector3(0, 0, 1);
-                    value = -1;
-                    rotationAngle *= -1; // B and B' are opposite to F and F'
-                    break;
+                case 'U': value = 1; break;
+                case 'D': value = -1; break;
+                case 'R': value = 1; break;
+                case 'L': value = -1; break;
+                case 'F': value = 1; break;
+                case 'B': value = -1; break;
                 default:
                     isAnimating = false;
                     return;
+            }
+
+            if (prime) {
+                rotationAngle *= -1; // Counter-clockwise
             }
 
             // Select cubelets for the current face
@@ -323,10 +645,10 @@
             const startRotation = rotationGroup.quaternion.clone();
             const endRotation = new THREE.Quaternion().setFromAxisAngle(axis, rotationAngle).multiply(startRotation);
 
-            const startTime = performance.now();
+            const startTimeAnim = performance.now(); // Use a different variable name to avoid conflict
 
             function animateRotation() {
-                const elapsed = performance.now() - startTime;
+                const elapsed = performance.now() - startTimeAnim;
                 const progress = Math.min(elapsed / animationDuration, 1);
 
                 rotationGroup.quaternion.slerpQuaternions(startRotation, endRotation, progress);
@@ -339,18 +661,65 @@
                         rotationGroup.remove(cubelet); // Remove from group
                         scene.add(cubelet); // Add back to scene
 
+                        // Apply the final rotation to the cubelet's own quaternion
+                        cubelet.quaternion.copy(rotationGroup.quaternion);
+
                         // Update cubelet's current grid position based on its new world position
                         // We need to round to nearest integer because of floating point inaccuracies
+                        // First, reset the group's rotation to identity before detaching to get correct world position
+                        rotationGroup.quaternion.identity(); // Temporarily reset group rotation
+                        cubelet.updateMatrixWorld(true); // Ensure cubelet's world matrix is updated
                         cubelet.userData.currentPos.copy(cubelet.position).divideScalar(1 + cubeletGap).round();
                     });
 
                     scene.remove(rotationGroup); // Remove temporary group
                     rotationGroup.clear(); // Clear children from group
                     isAnimating = false; // Allow next rotation
+
+                    if (isUserMove) {
+                        incrementMoveCount(); // Increment move count only for user-initiated moves
+                        if (isSolved()) {
+                            stopTimer();
+                            const finalTime = document.getElementById('timerDisplay').textContent.replace('Time: ', '');
+                            showMessageBox(`Congratulations! You solved the STUBE Cube in ${moveCount} moves and ${finalTime}! Your score has been submitted to the leaderboard.`);
+                            submitScore(); // Submit score to leaderboard
+                        }
+                    }
                 }
             }
             animateRotation();
         }
+
+        /**
+         * Checks if the cube is in its solved state.
+         * A cube is solved if all cubelets are in their initial grid positions AND
+         * their local rotations are aligned with their initial (identity) rotations.
+         */
+        function isSolved() {
+            for (let i = 0; i < cubelets.length; i++) {
+                const cubelet = cubelets[i];
+                const initialPos = cubelet.userData.initialPos;
+                const currentPos = cubelet.userData.currentPos;
+                const initialQuaternion = cubelet.userData.initialQuaternion; // Should be identity
+
+                // Check position
+                if (Math.abs(currentPos.x - initialPos.x) > tolerance ||
+                    Math.abs(currentPos.y - initialPos.y) > tolerance ||
+                    Math.abs(currentPos.z - initialPos.z) > tolerance) {
+                    return false; // Position mismatch
+                }
+
+                // Check rotation (compare current quaternion to initial identity quaternion)
+                if (Math.abs(cubelet.quaternion.x - initialQuaternion.x) > tolerance ||
+                    Math.abs(cubelet.quaternion.y - initialQuaternion.y) > tolerance ||
+                    Math.abs(cubelet.quaternion.z - initialQuaternion.z) > tolerance ||
+                    Math.abs(cubelet.quaternion.w - initialQuaternion.w) > tolerance) {
+                    return false; // Rotation mismatch
+                }
+            }
+            return true; // All cubelets are in their solved state
+        }
+
 
         /**
          * Scrambles the cube by performing a series of random rotations.
@@ -361,6 +730,10 @@
                 return;
             }
 
+            resetTimer(); // Reset timer when scrambling
+            resetMoveCount(); // Reset moves when scrambling
+            gameStarted = false; // Ensure gameStarted is false until first user move
+
             const moves = ['U', 'D', 'L', 'R', 'F', 'B'];
             const numMoves = 20; // Number of random moves to scramble
 
@@ -370,7 +743,8 @@
                     const randomFace = moves[Math.floor(Math.random() * moves.length)];
                     const randomPrime = Math.random() < 0.5; // True for prime, false for regular
 
-                    rotateFace(randomFace, randomPrime);
+                    // Pass false for isUserMove so it doesn't increment move count or check solved state
+                    rotateFace(randomFace, randomPrime, false);
 
                     // Wait for the animation to complete before performing the next move
                     const checkAnimation = setInterval(() => {
@@ -381,7 +755,7 @@
                         }
                     }, 50); // Check every 50ms
                 } else {
-                    showMessageBox("Cube scrambled!");
+                    showMessageBox("Cube scrambled! Make a move to start the timer.");
                 }
             }
             performNextMove();
@@ -400,26 +774,328 @@
             cubelets.forEach(cubelet => scene.remove(cubelet));
             cubelets.length = 0; // Clear the array
 
-            // Recreate all cubelets in their initial positions
+            // Recreate all cubelets in their initial positions with new IDs
+            let cubeletId = 1;
             for (let x = -1; x <= 1; x++) {
                 for (let y = -1; y <= 1; y++) {
                     for (let z = -1; z <= 1; z++) {
-                        cubelets.push(createCubelet(x, y, z));
+                        cubelets.push(createCubelet(x, y, z, cubeletId++));
                     }
                 }
             }
-            showMessageBox("Cube has been reset to its solved state!");
+            resetTimer();
+            resetMoveCount();
+            gameStarted = false; // Ensure gameStarted is false after reset
+            showMessageBox("Cube has been reset to its solved state.");
         }
 
-        // Expose functions to global scope for HTML buttons
-        window.scrambleCube = scrambleCube;
-        window.resetCube = resetCube;
-        window.showMessageBox = showMessageBox; // Expose for internal use
-        window.hideMessageBox = hideMessageBox; // Expose for internal use
+        // --- Interaction Logic (Mouse/Touch Drag) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
-        // Initialize the 3D cube when the window loads
-        window.addEventListener('load', init);
+        function getPointerCoordinates(event) {
+            const canvas = renderer.domElement;
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
 
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        function onPointerDown(event) {
+            if (isAnimating) return;
+
+            getPointerCoordinates(event); // Populates mouse.x, mouse.y
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(cubelets);
+
+            if (intersects.length > 0) {
+                intersectedCubelet = intersects[0].object;
+                initialIntersectionPoint.copy(intersects[0].point);
+                // Ensure face normal is in world coordinates
+                intersectedFaceNormal = intersects[0].face.normal.clone().transformDirection(intersects[0].object.matrixWorld).normalize();
+
+                isDraggingFace = true;
+                startPointerX = event.touches ? event.touches[0].clientX : event.clientX;
+                startPointerY = event.touches ? event.touches[0].clientY : event.clientY;
+
+                initialPointerScreenX = startPointerX; // Store initial screen coordinates
+                initialPointerScreenY = startPointerY;
+
+                // Temporarily disable OrbitControls to allow face dragging
+                if (controls) controls.enabled = false;
+            }
+        }
+
+        function onPointerMove(event) {
+            if (!isDraggingFace || isAnimating) return;
+
+            const currentPointerScreenX = event.touches ? event.touches[0].clientX : event.clientX;
+            const currentPointerScreenY = event.touches ? event.touches[0].clientY : event.clientY;
+            const dxScreen = currentPointerScreenX - initialPointerScreenX;
+            const dyScreen = currentPointerScreenY - initialPointerScreenY;
+
+            // Check if drag exceeds pixel threshold
+            if (Math.abs(dxScreen) < dragThresholdPixels && Math.abs(dyScreen) < dragThresholdPixels) {
+                return; // Not enough drag yet
+            }
+
+            // Calculate current intersection point on the cubelet
+            getPointerCoordinates(event);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([intersectedCubelet]);
+
+            if (intersects.length === 0) {
+                // If the pointer moved off the initially intersected cubelet, stop dragging face
+                onPointerUp();
+                return;
+            }
+
+            const currentIntersectionPoint = intersects[0].point;
+            const dragVectorWorld = new THREE.Vector3().subVectors(currentIntersectionPoint, initialIntersectionPoint);
+            const projectedDragVector = dragVectorWorld.clone().projectOnPlane(intersectedFaceNormal);
+
+            if (projectedDragVector.length() < dragThresholdWorld) {
+                return; // Not enough drag in world units
+            }
+
+            let faceToRotate = null;
+            let primeRotation = false;
+
+            const currentCubeletPos = intersectedCubelet.userData.currentPos;
+            const normal = intersectedFaceNormal; // Already in world coordinates
+
+            // Determine the face and rotation based on the normal and cubelet's position
+            // Use a small tolerance for floating point comparisons
+            if (Math.abs(normal.y - 1) < tolerance) { // Up face (U)
+                faceToRotate = 'U';
+                // Cross product of normal (0,1,0) and drag (dx,0,dz) gives (dz, 0, -dx)
+                // Positive Y component means standard U rotation (clockwise when looking from top)
+                // Negative Y component means U' rotation (counter-clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.y < 0;
+            } else if (Math.abs(normal.y - (-1)) < tolerance) { // Down face (D)
+                faceToRotate = 'D';
+                // Cross product of normal (0,-1,0) and drag (dx,0,dz) gives (-dz, 0, dx)
+                // Positive Y component means D' rotation (counter-clockwise when looking from bottom)
+                // Negative Y component means D rotation (clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.y > 0;
+            } else if (Math.abs(normal.x - 1) < tolerance) { // Right face (R)
+                faceToRotate = 'R';
+                // Cross product of normal (1,0,0) and drag (0,dy,dz) gives (0, -dz, dy)
+                // Positive X component means R' rotation (counter-clockwise when looking from right)
+                // Negative X component means R rotation (clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.x > 0;
+            } else if (Math.abs(normal.x - (-1)) < tolerance) { // Left face (L)
+                faceToRotate = 'L';
+                // Cross product of normal (-1,0,0) and drag (0,dy,dz) gives (0, dz, -dy)
+                // Positive X component means L rotation (clockwise when looking from left)
+                // Negative X component means L' rotation (counter-clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.x < 0;
+            } else if (Math.abs(normal.z - 1) < tolerance) { // Front face (F)
+                faceToRotate = 'F';
+                // Cross product of normal (0,0,1) and drag (dx,dy,0) gives (-dy, dx, 0)
+                // Positive Z component means F' rotation (counter-clockwise when looking from front)
+                // Negative Z component means F rotation (clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.z > 0;
+            } else if (Math.abs(normal.z - (-1)) < tolerance) { // Back face (B)
+                faceToRotate = 'B';
+                // Cross product of normal (0,0,-1) and drag (dx,dy,0) gives (dy, -dx, 0)
+                // Positive Z component means B rotation (clockwise when looking from back)
+                // Negative Z component means B' rotation (counter-clockwise)
+                const cross = new THREE.Vector3().crossVectors(normal, projectedDragVector);
+                primeRotation = cross.z < 0;
+            }
+
+
+            // If a valid faceToRotate was determined, perform the rotation
+            if (faceToRotate) {
+                rotateFace(faceToRotate, primeRotation, true);
+                isDraggingFace = false; // End drag after initiating rotation
+                if (controls) controls.enabled = true; // Re-enable OrbitControls
+            }
+        }
+
+        function onPointerUp() {
+            isDraggingFace = false;
+            intersectedCubelet = null;
+            intersectedFaceNormal = null;
+            initialIntersectionPoint.set(0, 0, 0); // Reset
+            initialPointerScreenX = 0;
+            initialPointerScreenY = 0;
+            if (controls) controls.enabled = true; // Re-enable OrbitControls
+        }
+
+        function addInteractionListeners() {
+            const canvas = renderer.domElement;
+            canvas.addEventListener('mousedown', onPointerDown, false);
+            canvas.addEventListener('mousemove', onPointerMove, false);
+            canvas.addEventListener('mouseup', onPointerUp, false);
+            canvas.addEventListener('mouseleave', onPointerUp, false); // In case mouse leaves canvas
+
+            canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+            canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+            canvas.addEventListener('touchend', onPointerUp, false);
+            canvas.addEventListener('touchcancel', onPointerUp, false);
+        }
+
+        // --- Leaderboard Logic ---
+        // This appId is used for the Firestore collection path.
+        // For external deployment, you can use a fixed string like 'stube-cube-public-app'.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'stube-cube-public-app';
+
+        /**
+         * Generates a competition ID based on the current hour.
+         * This ID resets every 60 minutes.
+         * Format: YYYY-MM-DD-HH
+         */
+        function getCompetitionId() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            return `${year}-${month}-${day}-${hour}`;
+        }
+
+        /**
+         * Submits the user's solve score to Firestore.
+         */
+        async function submitScore() {
+            if (!window.isFirebaseReady || !window.firebaseDb || !window.currentUserId) {
+                console.warn("Firebase not ready or user not authenticated. Cannot submit score.");
+                showMessageBox("Cannot submit score: Firebase not ready or user not authenticated.");
+                return;
+            }
+            if (elapsedTime === 0 || moveCount === 0) {
+                console.warn("Attempted to submit score with 0 time or 0 moves. Skipping.");
+                return;
+            }
+
+            const db = window.firebaseDb;
+            const userId = window.currentUserId;
+            const competitionId = getCompetitionId();
+
+            try {
+                // Collection path for public leaderboard data
+                const leaderboardCollectionRef = window.fsCollection(db, `artifacts/${appId}/public/data/leaderboard`);
+
+                await window.fsAddDoc(leaderboardCollectionRef, {
+                    userId: userId,
+                    time: elapsedTime, // Store in microseconds for precision
+                    moves: moveCount,
+                    competitionId: competitionId,
+                    timestamp: window.fsServerTimestamp() // Use server timestamp for consistency
+                });
+                console.log("Score submitted successfully!");
+            } catch (e) {
+                console.error("Error adding document to leaderboard: ", e);
+                showMessageBox("Error submitting score. Please try again later.");
+            }
+        }
+
+        /**
+         * Fetches and displays the current hourly leaderboard in real-time.
+         */
+        window.fetchLeaderboard = function() {
+            if (!window.isFirebaseReady || !window.firebaseDb) {
+                console.warn("Firebase not ready. Cannot fetch leaderboard.");
+                return;
+            }
+
+            const db = window.firebaseDb;
+            const competitionId = getCompetitionId();
+            document.getElementById('competitionIdDisplay').textContent = `Current Competition: ${competitionId}`;
+
+            // Collection path for public leaderboard data
+            const leaderboardCollectionRef = window.fsCollection(db, `artifacts/${appId}/public/data/leaderboard`);
+
+            // Create a query against the collection, only filtering by competitionId
+            // Sorting and limiting will be done client-side to avoid index requirement
+            const q = window.fsQuery(
+                leaderboardCollectionRef,
+                window.fsWhere("competitionId", "==", competitionId)
+            );
+
+            // Set up real-time listener
+            window.fsOnSnapshot(q, (querySnapshot) => {
+                let scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push(doc.data());
+                });
+
+                // Client-side sorting: first by time (ascending), then by moves (ascending)
+                scores.sort((a, b) => {
+                    if (a.time !== b.time) {
+                        return a.time - b.time;
+                    }
+                    return a.moves - b.moves;
+                });
+
+                // Take only the top 10 scores
+                scores = scores.slice(0, 10);
+
+                const leaderboardList = document.getElementById('leaderboardList');
+                // Clear existing entries except the header row
+                while (leaderboardList.children.length > 1) {
+                    leaderboardList.removeChild(leaderboardList.lastChild);
+                }
+
+                if (scores.length === 0) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>-</span><span>No scores yet.</span><span></span><span></span>`;
+                    leaderboardList.appendChild(li);
+                    return;
+                }
+
+                let rank = 1;
+                scores.forEach((data) => {
+                    const li = document.createElement('li');
+
+                    // Format time for display
+                    const totalSeconds = data.time / 1000;
+                    const minutes = Math.floor(totalSeconds / 60);
+                    const seconds = Math.floor(totalSeconds % 60);
+                    const fractionalPart = totalSeconds - Math.floor(totalSeconds);
+                    const microseconds = Math.floor(fractionalPart * 1000000);
+                    const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(microseconds).padStart(6, '0')}`;
+
+                    // Display the full user ID as requested
+                    const displayUserId = data.userId;
+
+                    li.innerHTML = `
+                        <span>${rank}.</span>
+                        <span>${displayUserId}</span>
+                        <span>${formattedTime}</span>
+                        <span>${data.moves}</span>
+                    `;
+                    leaderboardList.appendChild(li);
+                    rank++;
+                });
+            }, (error) => {
+                console.error("Error fetching leaderboard: ", error);
+                showMessageBox("Error loading leaderboard. Please check your internet connection.");
+            });
+        }
+
+        // Initialize the cube when the window loads
+        window.onload = function () {
+            init();
+            // fetchLeaderboard is called once Firebase is ready in the Firebase script block
+        };
     </script>
 </body>
 </html>
