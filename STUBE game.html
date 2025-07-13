@@ -397,6 +397,7 @@
          * Initializes Firebase app and handles user authentication.
          */
         async function setupFirebase() {
+            console.log("DEBUG: setupFirebase called.");
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -405,32 +406,31 @@
                 // Authenticate using the provided custom token or anonymously
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
-                    console.log("Firebase: Signed in with custom token.");
+                    console.log("DEBUG: Firebase: Signed in with custom token.");
                 } else {
                     await signInAnonymously(auth);
-                    console.log("Firebase: Signed in anonymously.");
+                    console.log("DEBUG: Firebase: Signed in anonymously.");
                 }
 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
-                        console.log("Firebase: Current user UID:", userId);
+                        console.log("DEBUG: Firebase: Current user UID:", userId);
                     } else {
-                        // This case should ideally not be hit if initial sign-in was successful,
-                        // but good for robustness.
                         userId = null;
-                        console.log("Firebase: No user signed in.");
+                        console.log("DEBUG: Firebase: No user signed in.");
                     }
                     const userIdDisplayElement = document.getElementById('currentUserId');
                     if (userIdDisplayElement) {
                         userIdDisplayElement.textContent = `Your User ID: ${userId || 'N/A'}`;
                     }
                     isFirebaseReady = true;
+                    console.log("DEBUG: Firebase: isFirebaseReady set to true.");
                     // scheduleHourlyReset is now called from checkElementsAndInit after DOM is ready
                 });
 
             } catch (error) {
-                console.error("Firebase initialization or authentication error:", error);
+                console.error("DEBUG: Firebase initialization or authentication error:", error);
                 showMessageBox("Error initializing Firebase. Please ensure your Firebase config is correct and try again later.");
             }
         }
@@ -442,7 +442,7 @@
          */
         window.saveSolveResult = async function(time, moves) {
             if (!isFirebaseReady || !userId) {
-                console.error("Firebase not ready or user not authenticated to save result.");
+                console.error("DEBUG: Cannot save result: Firebase not ready or user not authenticated.");
                 showMessageBox("Cannot save result: Firebase not ready or user not authenticated.");
                 return;
             }
@@ -455,9 +455,9 @@
                     moves: moves,
                     timestamp: serverTimestamp() // Use server timestamp for accuracy
                 });
-                console.log("Solve result saved to Firestore!");
+                console.log("DEBUG: Solve result saved to Firestore!");
             } catch (e) {
-                console.error("Error adding document: ", e);
+                console.error("DEBUG: Error adding document: ", e);
                 showMessageBox("Failed to save your solve result.");
             }
         };
@@ -467,12 +467,14 @@
          */
         let unsubscribeSolves = null; // To store the unsubscribe function for the listener
         function listenForSolves() {
+            console.log("DEBUG: listenForSolves called.");
             if (unsubscribeSolves) {
                 unsubscribeSolves(); // Unsubscribe from previous listener if exists
+                console.log("DEBUG: Unsubscribed from previous solves listener.");
             }
 
             if (!isFirebaseReady || !userId) {
-                console.warn("Firebase not ready or user not authenticated to listen for solves.");
+                console.warn("DEBUG: Firebase not ready or user not authenticated to listen for solves. Skipping listenForSolves.");
                 return;
             }
 
@@ -490,9 +492,10 @@
             );
 
             unsubscribeSolves = onSnapshot(q, (snapshot) => {
+                console.log("DEBUG: onSnapshot callback triggered.");
                 const commentsSection = document.getElementById('commentsSection');
                 if (!commentsSection) {
-                    console.error("Comments section element not found. This should not happen if called after DOM check.");
+                    console.error("DEBUG: Comments section element not found. This should not happen if called after DOM check.");
                     return;
                 }
                 commentsSection.innerHTML = '<h3 class="text-xl font-bold mb-4 text-white">Recent Solves (Current Hour):</h3>';
@@ -519,7 +522,7 @@
                     });
                 }
             }, (error) => {
-                console.error("Error listening to Firestore:", error);
+                console.error("DEBUG: Error listening to Firestore:", error);
                 showMessageBox("Error loading leaderboard data.");
             });
         }
@@ -528,6 +531,7 @@
          * Schedules the leaderboard to refresh at the start of every hour.
          */
         function scheduleHourlyReset() {
+            console.log("DEBUG: scheduleHourlyReset called.");
             listenForSolves(); // Initial load
 
             const now = new Date();
@@ -535,13 +539,17 @@
             const secondsToNextHour = 60 - now.getSeconds();
             const msToNextHour = (minutesToNextHour * 60 * 1000) - (now.getSeconds() * 1000) - now.getMilliseconds() + (secondsToNextHour * 1000);
 
-            console.log(`Next leaderboard reset in ${msToNextHour / 1000 / 60} minutes.`);
+            console.log(`DEBUG: Next leaderboard reset in ${msToNextHour / 1000 / 60} minutes.`);
 
             // Set timeout for the first reset at the next full hour
             setTimeout(() => {
+                console.log("DEBUG: First hourly reset triggered.");
                 listenForSolves(); // Trigger reset
                 // Then, set interval for subsequent hourly resets
-                setInterval(listenForSolves, 60 * 60 * 1000); // Every hour
+                setInterval(() => {
+                    console.log("DEBUG: Hourly reset interval triggered.");
+                    listenForSolves();
+                }, 60 * 60 * 1000); // Every hour
             }, msToNextHour);
         }
 
@@ -602,22 +610,23 @@
          * @param {number} height - The height to set for the renderer.
          */
         function initCube(width, height) {
+            console.log("DEBUG: initCube called with width:", width, "height:", height);
             const canvas = document.getElementById('stubeCanvas');
             if (!canvas) {
-                console.error("STUBE Canvas element not found during initCube.");
+                console.error("DEBUG: STUBE Canvas element not found during initCube. This is a critical error.");
                 return;
             }
 
             // Check if WebGL context can be obtained
             const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
             if (!gl || !(gl instanceof WebGLRenderingContext)) {
-                console.error("WebGL not supported or context could not be obtained.");
+                console.error("DEBUG: WebGL not supported or context could not be obtained.");
                 showMessageBox("Your browser/device does not support WebGL, which is required for this game.");
                 return;
             }
             gl.clearColor(0, 0, 0, 0); // Clear with transparent background
 
-            console.log(`Initializing Three.js renderer with dimensions: ${width}x${height}`);
+            console.log(`DEBUG: Initializing Three.js renderer with dimensions: ${width}x${height}`);
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
@@ -652,12 +661,14 @@
             canvas.addEventListener('touchend', onInputEnd);     // Unified handler
 
             animate(); // Start the animation loop
+            console.log("DEBUG: animate() called. Cube rendering should begin.");
         }
 
         /**
          * Handles window resizing to adjust canvas and camera.
          */
         function onWindowResize() {
+            console.log("DEBUG: onWindowResize called.");
             const canvas = document.getElementById('stubeCanvas');
             if (canvas) {
                 const currentWidth = canvas.offsetWidth;
@@ -668,9 +679,9 @@
                     camera.aspect = currentWidth / currentHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(currentWidth, currentHeight);
-                    console.log(`Canvas resized to: ${currentWidth}x${currentHeight}`);
+                    console.log(`DEBUG: Canvas resized to: ${currentWidth}x${currentHeight}`);
                 } else {
-                    console.warn("Canvas reported zero dimensions during resize, skipping update.");
+                    console.warn("DEBUG: Canvas reported zero dimensions during resize, skipping update.");
                 }
             }
         }
@@ -748,6 +759,7 @@
          * Assembles the 3x3x3 cube from individual cubelets.
          */
         function createCube() {
+            console.log("DEBUG: createCube called.");
             cubeGroup.clear(); // Clear existing cubelets if any
             initialCubeletStates.length = 0; // Clear initial states
             let cubeletIndex = 1; // Start labeling from 1
@@ -761,6 +773,7 @@
                     }
                 }
             }
+            console.log("DEBUG: Cubelets created and added to cubeGroup.");
         }
 
         /**
@@ -1082,11 +1095,12 @@
                         intersectedFaceNormal.transformDirection(intersectedCubelet.matrixWorld);
                         intersectedFaceNormal.normalize();
 
-                        console.log("Touch started on cubelet:", intersectedCubelet.userData.x, intersectedCubelet.userData.y, intersectedCubelet.userData.z);
-                        console.log("Touched face normal (world):", intersectedFaceNormal.x.toFixed(2), intersectedFaceNormal.y.toFixed(2), intersectedFaceNormal.z.toFixed(2));
+                        console.log("DEBUG: Touch started on cubelet:", intersectedCubelet.userData.x, intersectedCubelet.userData.y, intersectedCubelet.userData.z);
+                        console.log("DEBUG: Touched face normal (world):", intersectedFaceNormal.x.toFixed(2), intersectedFaceNormal.y.toFixed(2), intersectedFaceNormal.z.toFixed(2));
                     } else {
                         intersectedCubelet = null;
                         intersectedFaceNormal = null;
+                        console.log("DEBUG: Touch started, but no cubelet intersected.");
                     }
 
                 } else if (event.touches.length === 2) {
@@ -1096,6 +1110,7 @@
                     startInputX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
                     startInputY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
                     initialCameraRotation.copy(cubeGroup.rotation);
+                    console.log("DEBUG: Two-finger touch started for camera rotation.");
                 }
             }
         }
@@ -1266,9 +1281,16 @@
                     }
 
                     if (face && direction !== 0) {
+                        console.log(`DEBUG: Attempting to twist layer: ${face}, direction: ${direction}`);
                         twistLayer(face, direction);
+                    } else {
+                        console.log("DEBUG: Swipe detected, but no valid twist inferred.");
                     }
+                } else {
+                    console.log("DEBUG: Swipe too short to register as a twist.");
                 }
+            } else {
+                console.log("DEBUG: onInputEnd: Not a twisting gesture or no intersected cubelet.");
             }
             isDraggingCamera = false;
             isTwistingGesture = false;
@@ -1278,23 +1300,28 @@
 
         // --- Event Listeners for Buttons ---
         document.addEventListener('DOMContentLoaded', () => {
-            setupFirebase();
+            console.log("DEBUG: DOMContentLoaded event fired.");
+            setupFirebase(); // Start Firebase setup
 
             const checkElementsAndInit = () => {
+                console.log("DEBUG: checkElementsAndInit called.");
                 const canvas = document.getElementById('stubeCanvas');
                 const commentsSection = document.getElementById('commentsSection');
                 const scrambleButton = document.getElementById('scrambleButton');
                 const startButton = document.getElementById('startButton');
                 const resetButton = document.getElementById('resetButton');
                 const movesDisplayElement = document.getElementById('movesDisplay');
+                const timerDisplayElement = document.getElementById('timerDisplay'); // Ensure timerDisplay is also checked
 
-                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplayElement) {
+                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplayElement && movesDisplayElement) {
                     // Ensure canvas has valid dimensions before initializing Three.js
                     const initialCanvasWidth = canvas.offsetWidth;
                     const initialCanvasHeight = canvas.offsetHeight;
 
+                    console.log(`DEBUG: Canvas offsetWidth: ${initialCanvasWidth}, offsetHeight: ${initialCanvasHeight}`);
+
                     if (initialCanvasWidth > 0 && initialCanvasHeight > 0) {
-                        console.log("All required DOM elements found and canvas has dimensions. Initializing cube and listeners.");
+                        console.log("DEBUG: All required DOM elements found and canvas has dimensions. Initializing cube and listeners.");
                         initCube(initialCanvasWidth, initialCanvasHeight); // Pass dimensions to initCube
 
                         scrambleButton.addEventListener('click', scrambleCube);
@@ -1304,18 +1331,26 @@
                         // Add the window resize listener here, after canvas is initialized
                         window.addEventListener('resize', onWindowResize);
 
-                        scheduleHourlyReset();
+                        // Schedule hourly reset only if Firebase is ready.
+                        // This will be called again by onAuthStateChanged if Firebase becomes ready later.
+                        if (isFirebaseReady) {
+                            scheduleHourlyReset();
+                        } else {
+                            console.log("DEBUG: Firebase not yet ready, will schedule hourly reset once ready.");
+                        }
+
                     } else {
-                        console.log("Canvas dimensions are zero. Waiting for layout to complete...");
+                        console.log("DEBUG: Canvas dimensions are zero. Waiting for layout to complete...");
                         setTimeout(checkElementsAndInit, 50); // Retry until canvas has dimensions
                     }
                 } else {
-                    console.log("Waiting for all required DOM elements to be available...");
+                    console.log("DEBUG: Waiting for all required DOM elements to be available...");
                     setTimeout(checkElementsAndInit, 50);
                 }
             };
 
-            checkElementsAndInit();
+            // Start checking for elements after a short delay to allow DOM to render
+            setTimeout(checkElementsAndInit, 100);
         });
     </script>
 </body>
