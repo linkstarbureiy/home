@@ -29,14 +29,22 @@
         }
 
         #app-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 900px;
-            width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-        }
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 900px; /* Default for larger screens */
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Media query for smaller screens (e.g., phones) */
+@media (max-width: 640px) {
+    #app-container {
+        padding: 10px; /* Reduce overall padding */
+        max-width: 360px; /* Restrict max-width further for very small screens */
+    }
+}
 
         #stube-game-section {
             background-color: #2d3748; /* Darker background for the game section */
@@ -236,6 +244,69 @@
             max-width: 100%;
             height: auto;
         }
+
+    /* Further adjustments for smaller screens to make everything fit */
+@media (max-width: 640px) {
+    h1 {
+        font-size: 2.25rem; /* Smaller h1 for mobile */
+        margin-bottom: 15px;
+    }
+
+    .timer-display {
+        font-size: 2.2rem; /* Smaller timer font */
+    }
+
+    .moves-display {
+        font-size: 1rem; /* Smaller moves font */
+        margin-bottom: 5px;
+    }
+
+    .control-panel {
+        gap: 10px; /* Reduce gap between controls */
+        padding: 15px; /* Smaller padding for panel */
+    }
+
+    .button-group {
+        gap: 8px; /* Reduce gap between buttons */
+    }
+
+    .control-button {
+        padding: 10px 18px; /* Smaller button padding */
+        font-size: 0.9rem; /* Smaller button text */
+        min-width: 100px; /* Adjust min-width if needed */
+    }
+
+    .leaderboard-section {
+        padding: 15px; /* Smaller padding for leaderboard */
+        margin-top: 20px;
+    }
+
+    .leaderboard-section h2 {
+        font-size: 1.75rem; /* Smaller leaderboard title */
+        margin-bottom: 10px;
+    }
+
+    .leaderboard-item {
+        padding: 8px 10px; /* Smaller leaderboard item padding */
+        font-size: 0.85rem; /* Smaller leaderboard item text */
+    }
+
+    .user-id-display {
+        font-size: 0.7rem; /* Smaller user ID text */
+    }
+
+    .message-box {
+        padding: 15px;
+        gap: 10px;
+        max-width: 280px;
+        font-size: 0.9rem;
+    }
+
+    .message-box button {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+}
     </style>
 </head>
 <body>
