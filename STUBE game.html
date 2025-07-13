@@ -583,46 +583,33 @@
 
         /**
          * Initializes the Three.js scene, camera, and renderer.
+         * It now takes width and height as parameters, assuming they are valid.
+         * @param {number} width - The width to set for the renderer.
+         * @param {number} height - The height to set for the renderer.
          */
-        function initCube() {
+        function initCube(width, height) {
             const canvas = document.getElementById('stubeCanvas');
             if (!canvas) {
                 console.error("STUBE Canvas element not found during initCube.");
                 return;
             }
 
-            // Explicitly set canvas dimensions as attributes if not already set,
-            // or ensure they are consistent with CSS.
-            const desiredWidth = 500; // Consistent with CSS max-width
-            const desiredHeight = 400; // Consistent with CSS height
-
-            if (canvas.width === 0 || canvas.height === 0 || canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
-                canvas.width = desiredWidth;
-                canvas.height = desiredHeight;
-                console.log(`Canvas attributes set to: ${canvas.width}x${canvas.height}`);
-            }
-
-            // Get actual rendered dimensions after setting attributes/CSS
-            let canvasWidth = canvas.offsetWidth;
-            let canvasHeight = canvas.offsetHeight;
-
-            // Robust check: if dimensions are still zero, retry.
-            if (canvasWidth === 0 || canvasHeight === 0) {
-                console.warn("Canvas offset dimensions are still zero. Retrying initCube in 100ms...");
-                setTimeout(initCube, 100); // Retry initialization after a short delay
+            // Check if WebGL context can be obtained
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl || !(gl instanceof WebGLRenderingContext)) {
+                console.error("WebGL not supported or context could not be obtained.");
+                showMessageBox("Your browser/device does not support WebGL, which is required for this game.");
                 return;
             }
+            gl.clearColor(0, 0, 0, 0); // Clear with transparent background
 
-            console.log(`Initializing Three.js renderer with dimensions: ${canvasWidth}x${canvasHeight}`);
+            console.log(`Initializing Three.js renderer with dimensions: ${width}x${height}`);
 
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            renderer.setSize(canvasWidth, canvasHeight);
+            renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
-
-            renderer.domElement.style.width = '100%';
-            renderer.domElement.style.height = '100%';
 
             // Add ambient light
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -650,7 +637,7 @@
             canvas.addEventListener('touchmove', onTouchMove, { passive: false });
             canvas.addEventListener('touchend', onTouchEnd);
 
-            window.addEventListener('resize', onWindowResize);
+            // window.addEventListener('resize', onWindowResize); // This will be called from DOMContentLoaded
 
             animate(); // Start the animation loop
         }
@@ -664,6 +651,7 @@
                 const currentWidth = canvas.offsetWidth;
                 const currentHeight = canvas.offsetHeight;
 
+                // Only update if dimensions are valid (not zero)
                 if (currentWidth > 0 && currentHeight > 0) {
                     camera.aspect = currentWidth / currentHeight;
                     camera.updateProjectionMatrix();
@@ -1321,28 +1309,32 @@
                 const scrambleButton = document.getElementById('scrambleButton');
                 const startButton = document.getElementById('startButton');
                 const resetButton = document.getElementById('resetButton');
+                const movesDisplayElement = document.getElementById('movesDisplay');
 
-                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplay) {
-                    console.log("All required DOM elements found. Initializing cube and listeners.");
-                    initCube();
+                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplayElement) {
+                    // Ensure canvas has valid dimensions before initializing Three.js
+                    const initialCanvasWidth = canvas.offsetWidth;
+                    const initialCanvasHeight = canvas.offsetHeight;
 
-                    scrambleButton.addEventListener('click', scrambleCube);
-                    startButton.addEventListener('click', startTimer);
-                    resetButton.addEventListener('click', resetCube);
+                    if (initialCanvasWidth > 0 && initialCanvasHeight > 0) {
+                        console.log("All required DOM elements found and canvas has dimensions. Initializing cube and listeners.");
+                        initCube(initialCanvasWidth, initialCanvasHeight); // Pass dimensions to initCube
 
-                    document.querySelectorAll('.twist-button').forEach(button => {
-                        button.addEventListener('click', (event) => {
-                            const face = event.target.dataset.face;
-                            const direction = parseInt(event.target.dataset.direction);
-                            twistLayer(face, direction);
-                        });
-                    });
-                    // Now that commentsSection is confirmed to exist, schedule the leaderboard updates
-                    scheduleHourlyReset();
+                        scrambleButton.addEventListener('click', scrambleCube);
+                        startButton.addEventListener('click', startTimer);
+                        resetButton.addEventListener('click', resetCube);
 
+                        // Add the window resize listener here, after canvas is initialized
+                        window.addEventListener('resize', onWindowResize);
+
+                        scheduleHourlyReset();
+                    } else {
+                        console.log("Canvas dimensions are zero. Waiting for layout to complete...");
+                        setTimeout(checkElementsAndInit, 50); // Retry until canvas has dimensions
+                    }
                 } else {
                     console.log("Waiting for all required DOM elements to be available...");
-                    setTimeout(checkElementsAndInit, 50); // Retry after a short delay
+                    setTimeout(checkElementsAndInit, 50);
                 }
             };
 
