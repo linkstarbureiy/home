@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- jQuery CDN (not strictly needed for this version, but kept if other parts of your project use it) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- PayPal Hosted Buttons script -->
+    <!-- PayPal Hosted Buttons script (if you intend to use this, otherwise can be removed) -->
     <script src="https://www.paypalobjects.com/js/external/paypal-hosted-buttons.js"></script>
 
     <style>
@@ -29,22 +29,22 @@
         }
 
         #app-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 900px; /* Default for larger screens */
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-}
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 900px; /* Default for larger screens */
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-/* Media query for smaller screens (e.g., phones) */
-@media (max-width: 640px) {
-    #app-container {
-        padding: 10px; /* Reduce overall padding */
-        max-width: 360px; /* Restrict max-width further for very small screens */
-    }
-}
+        /* Media query for smaller screens (e.g., phones) */
+        @media (max-width: 640px) {
+            #app-container {
+                padding: 10px; /* Reduce overall padding */
+                max-width: 360px; /* Restrict max-width further for very small screens */
+            }
+        }
 
         #stube-game-section {
             background-color: #2d3748; /* Darker background for the game section */
@@ -58,17 +58,17 @@
             align-items: center;
         }
 
-#stubeCanvas {
-    display: block;
-    width: 100%; /* Take full width of parent */
-    max-width: 320px; /* But don't exceed 500px */
-    aspect-ratio: 5 / 4; /* Maintain 5:4 aspect ratio (500/400) */
-    border-radius: 12px;
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-    background-color: #4a5568; /* Canvas background */
-    touch-action: none; /* Prevent default touch actions like scrolling */
-    margin-bottom: 20px;
-}
+        #stubeCanvas {
+            display: block;
+            width: 100%; /* Take full width of parent */
+            max-width: 320px; /* Reduced max-width for better mobile fit */
+            aspect-ratio: 5 / 4; /* Maintain 5:4 aspect ratio (500/400) */
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            background-color: #4a5568; /* Canvas background */
+            touch-action: none; /* Prevent default touch actions like scrolling */
+            margin-bottom: 20px;
+        }
 
         .control-panel {
             display: flex;
@@ -124,13 +124,6 @@
         .control-button:active {
             transform: translateY(0);
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .twist-button {
-            background-image: linear-gradient(145deg, #a78bfa, #8b5cf6); /* Purple gradient for twist buttons */
-        }
-        .twist-button:hover {
-            background-image: linear-gradient(145deg, #8b5cf6, #7c3aed);
         }
 
         .leaderboard-section {
@@ -245,75 +238,75 @@
             height: auto;
         }
 
-    /* Further adjustments for smaller screens to make everything fit */
-@media (max-width: 640px) {
-    h1 {
-        font-size: 2.25rem; /* Smaller h1 for mobile */
-        margin-bottom: 15px;
-    }
+        /* Further adjustments for smaller screens to make everything fit */
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2.25rem; /* Smaller h1 for mobile */
+                margin-bottom: 15px;
+            }
 
-    .timer-display {
-        font-size: 2.2rem; /* Smaller timer font */
-    }
+            .timer-display {
+                font-size: 2.2rem; /* Smaller timer font */
+            }
 
-    .moves-display {
-        font-size: 1rem; /* Smaller moves font */
-        margin-bottom: 5px;
-    }
+            .moves-display {
+                font-size: 1rem; /* Smaller moves font */
+                margin-bottom: 5px;
+            }
 
-    .control-panel {
-        gap: 10px; /* Reduce gap between controls */
-        padding: 15px; /* Smaller padding for panel */
-    }
+            .control-panel {
+                gap: 10px; /* Reduce gap between controls */
+                padding: 15px; /* Smaller padding for panel */
+            }
 
-    .button-group {
-        gap: 8px; /* Reduce gap between buttons */
-    }
+            .button-group {
+                gap: 8px; /* Reduce gap between buttons */
+            }
 
-    .control-button {
-        padding: 10px 18px; /* Smaller button padding */
-        font-size: 0.9rem; /* Smaller button text */
-        min-width: 100px; /* Adjust min-width if needed */
-    }
+            .control-button {
+                padding: 10px 18px; /* Smaller button padding */
+                font-size: 0.9rem; /* Smaller button text */
+                min-width: 100px; /* Adjust min-width if needed */
+            }
 
-    .leaderboard-section {
-        padding: 15px; /* Smaller padding for leaderboard */
-        margin-top: 20px;
-    }
+            .leaderboard-section {
+                padding: 15px; /* Smaller padding for leaderboard */
+                margin-top: 20px;
+            }
 
-    .leaderboard-section h2 {
-        font-size: 1.75rem; /* Smaller leaderboard title */
-        margin-bottom: 10px;
-    }
+            .leaderboard-section h2 {
+                font-size: 1.75rem; /* Smaller leaderboard title */
+                margin-bottom: 10px;
+            }
 
-    .leaderboard-item {
-        padding: 8px 10px; /* Smaller leaderboard item padding */
-        font-size: 0.85rem; /* Smaller leaderboard item text */
-    }
+            .leaderboard-item {
+                padding: 8px 10px; /* Smaller leaderboard item padding */
+                font-size: 0.85rem; /* Smaller leaderboard item text */
+            }
 
-    .user-id-display {
-        font-size: 0.7rem; /* Smaller user ID text */
-    }
+            .user-id-display {
+                font-size: 0.7rem; /* Smaller user ID text */
+            }
 
-    .message-box {
-        padding: 15px;
-        gap: 10px;
-        max-width: 280px;
-        font-size: 0.9rem;
-    }
+            .message-box {
+                padding: 15px;
+                gap: 10px;
+                max-width: 280px;
+                font-size: 0.9rem;
+            }
 
-    .message-box button {
-        padding: 6px 12px;
-        font-size: 0.85rem;
-    }
-}
+            .message-box button {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div id="app-container">
         <h1 class="text-4xl font-extrabold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-green-300 to-blue-300">
-
+            stewdio.js: STUBE Speedcube
         </h1>
 
         <div id="stube-game-section">
@@ -321,9 +314,11 @@
 
             <div class="control-panel">
                 <div class="timer-display" id="timerDisplay">00:00.000</div>
-                <div class="moves-display" id="movesDisplay">Moves: 0</div> <!-- New: Moves display -->
+                <div class="moves-display" id="movesDisplay">Moves: 0</div>
                 <div class="button-group">
-                    
+                    <button class="control-button" id="scrambleButton">Scramble</button>
+                    <button class="control-button" id="startButton">Start</button>
+                    <button class="control-button" id="resetButton">Reset</button>
                 </div>
                 <p class="user-id-display" id="currentUserId">Your User ID: Loading...</p>
             </div>
@@ -349,7 +344,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, addDoc, onSnapshot, collection, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Global Helper Functions (moved into module scope) ---
+        // --- Global Helper Functions ---
         /**
          * Displays a custom message box instead of alert().
          * @param {string} message - The message to display.
@@ -378,16 +373,20 @@
         }
 
         // --- Firebase Setup ---
+        // These variables are provided by the Canvas environment.
+        // __app_id is used for structuring Firestore paths.
+        // __firebase_config contains your project's configuration.
+        // __initial_auth_token is used for initial authentication.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = { // <--- YOUR ACTUAL FIREBASE CONFIG STARTS HERE
-          apiKey: "AIzaSyCjNwb7BJtwso0Gx-Zv_bB2kBGaxzRfxxw",
-          authDomain: "stube0.firebaseapp.com",
-          projectId: "stube0",
-          storageBucket: "stube0.firebasestorage.app",
-          messagingSenderId: "974775896350",
-          appId: "1:974775896350:web:1f89446c0ef9f7093c210f",
-          measurementId: "G-P6HXCM52LX"
-        }; // <--- YOUR ACTUAL FIREBASE CONFIG ENDS HERE
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyCjNwb7BJtwso0Gx-Zv_bB2kBGaxzRfxxw",
+            authDomain: "stube0.firebaseapp.com",
+            projectId: "stube0",
+            storageBucket: "stube0.firebasestorage.app",
+            messagingSenderId: "974775896350",
+            appId: "1:974775896350:web:1f89446c0ef9f7093c210f",
+            measurementId: "G-P6HXCM52LX"
+        };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 
@@ -403,27 +402,36 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-               onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    console.log("Firebase: User signed in:", userId);
+                // Authenticate using the provided custom token or anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Firebase: Signed in with custom token.");
                 } else {
-                    // For self-hosted version, always sign in anonymously if no user is found
                     await signInAnonymously(auth);
-                    userId = auth.currentUser.uid; // Get the anonymous UID
-                    console.log("Firebase: Signed in anonymously:", userId);
+                    console.log("Firebase: Signed in anonymously.");
                 }
-                const userIdDisplayElement = document.getElementById('currentUserId');
-                if (userIdDisplayElement) {
-                    userIdDisplayElement.textContent = `Your User ID: ${userId}`;
-                }
-                isFirebaseReady = true;
-                // scheduleHourlyReset is now called from checkElementsAndInit after DOM is ready
-            });
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Firebase: Current user UID:", userId);
+                    } else {
+                        // This case should ideally not be hit if initial sign-in was successful,
+                        // but good for robustness.
+                        userId = null;
+                        console.log("Firebase: No user signed in.");
+                    }
+                    const userIdDisplayElement = document.getElementById('currentUserId');
+                    if (userIdDisplayElement) {
+                        userIdDisplayElement.textContent = `Your User ID: ${userId || 'N/A'}`;
+                    }
+                    isFirebaseReady = true;
+                    // scheduleHourlyReset is now called from checkElementsAndInit after DOM is ready
+                });
 
             } catch (error) {
                 console.error("Firebase initialization or authentication error:", error);
-                showMessageBox("Error initializing Firebase. Please try again later.");
+                showMessageBox("Error initializing Firebase. Please ensure your Firebase config is correct and try again later.");
             }
         }
 
@@ -435,9 +443,11 @@
         window.saveSolveResult = async function(time, moves) {
             if (!isFirebaseReady || !userId) {
                 console.error("Firebase not ready or user not authenticated to save result.");
+                showMessageBox("Cannot save result: Firebase not ready or user not authenticated.");
                 return;
             }
             try {
+                // Use the provided appId for the collection path
                 const solvesCollectionRef = collection(db, `artifacts/${appId}/public/data/stube_solves`);
                 await addDoc(solvesCollectionRef, {
                     userId: userId,
@@ -470,6 +480,7 @@
             const startOfHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0);
             const endOfHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, -1); // One millisecond before next hour
 
+            // Use the provided appId for the collection path
             const solvesCollectionRef = collection(db, `artifacts/${appId}/public/data/stube_solves`);
             // Query for documents within the current hour, without orderBy for Firestore
             const q = query(
@@ -541,21 +552,24 @@
         let startTime = 0;
         let timerRunning = false; // Flag to indicate if timer is active
         let movesCount = 0;
+        let moveHistory = []; // Declare moveHistory globally
 
-        // Touch/Mouse Control Variables
+        // Touch/Mouse Control Variables (Consolidated and Corrected)
         let isDraggingCamera = false; // True if rotating camera (mouse or two-finger touch)
         let isTwistingGesture = false; // True if a single-finger twist gesture is active
-        let startTouchX = 0;
-        let startTouchY = 0;
-        let initialCameraRotation = new THREE.Euler(); // Store camera rotation at start of touch
+        let startInputX = 0; // Unified variable for mouse/touch start X
+        let startInputY = 0; // Unified variable for mouse/touch start Y
+        let currentInputX = 0; // Unified variable for mouse/touch current X
+        let currentInputY = 0; // Unified variable for mouse/touch current Y
+        let initialCameraRotation = new THREE.Euler(); // Store camera rotation at start of touch/mouse
         let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
+        let mouse = new THREE.Vector2(); // For raycasting
         let intersectedCubelet = null;
         let intersectedFaceNormal = null;
         let initialCubeletPosition = new THREE.Vector3(); // Position of the cubelet at touch start
 
         // DOM element for moves display
-        const movesDisplay = document.getElementById('movesDisplay');
+        const movesDisplay = document.getElementById('movesDisplay'); // Re-declare for clarity if needed, but it's global
 
         // STUBE Colors (all 6 defined as per user request)
         const STUBE_COLORS = {
@@ -628,16 +642,14 @@
             createCube(); // Assemble the 3x3x3 cube
 
             // Event listeners for camera rotation (mouse/touch)
-            canvas.addEventListener('mousedown', onMouseDown);
-            canvas.addEventListener('mousemove', onMouseMove);
-            canvas.addEventListener('mouseup', onMouseUp);
-            canvas.addEventListener('mouseleave', onMouseUp); // Stop dragging if mouse leaves canvas
+            canvas.addEventListener('mousedown', onInputStart); // Unified handler
+            canvas.addEventListener('mousemove', onInputMove);   // Unified handler
+            canvas.addEventListener('mouseup', onInputEnd);     // Unified handler
+            canvas.addEventListener('mouseleave', onInputEnd);  // Unified handler
 
-            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-            canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-            canvas.addEventListener('touchend', onTouchEnd);
-
-            // window.addEventListener('resize', onWindowResize); // This will be called from DOMContentLoaded
+            canvas.addEventListener('touchstart', onInputStart, { passive: false }); // Unified handler
+            canvas.addEventListener('touchmove', onInputMove, { passive: false });   // Unified handler
+            canvas.addEventListener('touchend', onInputEnd);     // Unified handler
 
             animate(); // Start the animation loop
         }
@@ -939,7 +951,11 @@
                     Math.round(cubelet.position.z)
                 );
 
-                if (!currentPos.equals(initialPos) || !cubelet.quaternion.equals(initialQuat)) {
+                const quaternionTolerance = 0.001;
+                const dotProduct = cubelet.quaternion.dot(initialQuat);
+                const isQuaternionEqual = Math.abs(dotProduct) > (1 - quaternionTolerance);
+
+                if (!currentPos.equals(initialPos) || !isQuaternionEqual) {
                     solved = false;
                     break;
                 }
@@ -1024,107 +1040,110 @@
         const SWIPE_THRESHOLD = 30; // Minimum pixel distance for a swipe to register as a twist
         const CAMERA_DRAG_THRESHOLD = 10; // Minimum pixel distance for a drag to register as camera rotation
 
-        function onMouseDown(event) {
-            isDraggingCamera = true;
-            startTouchX = event.clientX;
-            startTouchY = event.clientY;
-            initialCameraRotation.copy(cubeGroup.rotation);
-        }
+        /**
+         * Unified handler for mouse down and touch start events.
+         * Determines if it's a camera drag (mouse or 2-finger touch) or potential twist (1-finger touch).
+         */
+        function onInputStart(event) {
+            event.preventDefault(); // Prevent default browser actions like scrolling/text selection
 
-        function onMouseMove(event) {
-            if (!isDraggingCamera) return;
+            const canvas = renderer.domElement; // Get the canvas element
 
-            const deltaX = event.clientX - startTouchX;
-            const deltaY = event.clientY - startTouchY;
-
-            // Apply rotation based on mouse movement
-            cubeGroup.rotation.y = initialCameraRotation.y + deltaX * 0.005;
-            cubeGroup.rotation.x = initialCameraRotation.x + deltaY * 0.005;
-        }
-
-        function onMouseUp() {
-            isDraggingCamera = false;
-        }
-
-        // Variables for touch twist detection
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let touchMoveX = 0;
-        let touchMoveY = 0;
-        let touchStartCubelet = null; // The cubelet initially touched
-        let touchStartFaceNormal = null; // The face normal of the initially touched cubelet
-
-        function onTouchStart(event) {
-            event.preventDefault(); // Prevent scrolling and other default touch behaviors
-
-            if (event.touches.length === 1) {
-                // Single finger: potential twist gesture
-                isTwistingGesture = true;
-                isDraggingCamera = false; // Ensure camera drag is off for single finger
-                touchStartX = event.touches[0].clientX;
-                touchStartY = event.touches[0].clientY;
-                touchMoveX = touchStartX; // Initialize move position
-                touchMoveY = touchStartY;
-
-                // Perform raycasting to identify touched cubelet and face
-                const canvas = renderer.domElement;
-                mouse.x = (event.touches[0].clientX / canvas.clientWidth) * 2 - 1;
-                mouse.y = -(event.touches[0].clientY / canvas.clientHeight) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(cubeGroup.children);
-
-                if (intersects.length > 0) {
-                    intersectedCubelet = intersects[0].object;
-                    intersectedFaceNormal = intersects[0].face.normal.clone();
-                    initialCubeletPosition.copy(intersectedCubelet.position); // Store the cubelet's position
-                    // Convert face normal to world coordinates
-                    intersectedFaceNormal.applyQuaternion(intersectedCubelet.quaternion);
-                    intersectedFaceNormal.transformDirection(intersectedCubelet.matrixWorld);
-                    intersectedFaceNormal.normalize();
-
-                    console.log("Touch started on cubelet:", intersectedCubelet.userData.x, intersectedCubelet.userData.y, intersectedCubelet.userData.z);
-                    console.log("Touched face normal (world):", intersectedFaceNormal.x.toFixed(2), intersectedFaceNormal.y.toFixed(2), intersectedFaceNormal.z.toFixed(2));
-                } else {
-                    intersectedCubelet = null;
-                    intersectedFaceNormal = null;
-                }
-
-            } else if (event.touches.length === 2) {
-                // Two fingers: camera rotation
+            if (event.type === 'mousedown') {
+                // Mouse input: always camera drag
                 isDraggingCamera = true;
-                isTwistingGesture = false; // Ensure twist gesture is off for two fingers
-                startTouchX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
-                startTouchY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+                isTwistingGesture = false;
+                startInputX = event.clientX;
+                startInputY = event.clientY;
                 initialCameraRotation.copy(cubeGroup.rotation);
+            } else if (event.type === 'touchstart') {
+                if (event.touches.length === 1) {
+                    // Single finger touch: potential twist gesture
+                    isTwistingGesture = true;
+                    isDraggingCamera = false; // Ensure camera drag is off for single finger
+                    startInputX = event.touches[0].clientX;
+                    startInputY = event.touches[0].clientY;
+                    currentInputX = startInputX; // Initialize current position
+                    currentInputY = startInputY;
+
+                    // Perform raycasting to identify touched cubelet and face
+                    mouse.x = (event.touches[0].clientX / canvas.clientWidth) * 2 - 1;
+                    mouse.y = -(event.touches[0].clientY / canvas.clientHeight) * 2 + 1;
+
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObjects(cubeGroup.children);
+
+                    if (intersects.length > 0) {
+                        intersectedCubelet = intersects[0].object;
+                        intersectedFaceNormal = intersects[0].face.normal.clone();
+                        initialCubeletPosition.copy(intersectedCubelet.position); // Store the cubelet's position
+                        // Convert face normal to world coordinates
+                        intersectedFaceNormal.applyQuaternion(intersectedCubelet.quaternion);
+                        intersectedFaceNormal.transformDirection(intersectedCubelet.matrixWorld);
+                        intersectedFaceNormal.normalize();
+
+                        console.log("Touch started on cubelet:", intersectedCubelet.userData.x, intersectedCubelet.userData.y, intersectedCubelet.userData.z);
+                        console.log("Touched face normal (world):", intersectedFaceNormal.x.toFixed(2), intersectedFaceNormal.y.toFixed(2), intersectedFaceNormal.z.toFixed(2));
+                    } else {
+                        intersectedCubelet = null;
+                        intersectedFaceNormal = null;
+                    }
+
+                } else if (event.touches.length === 2) {
+                    // Two fingers touch: camera rotation
+                    isDraggingCamera = true;
+                    isTwistingGesture = false; // Ensure twist gesture is off for two fingers
+                    startInputX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+                    startInputY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+                    initialCameraRotation.copy(cubeGroup.rotation);
+                }
             }
         }
 
-        function onTouchMove(event) {
-            event.preventDefault(); // Prevent scrolling
+        /**
+         * Unified handler for mouse move and touch move events.
+         * Handles camera rotation or tracks swipe for twist gesture.
+         */
+        function onInputMove(event) {
+            event.preventDefault(); // Prevent default browser actions
 
-            if (isDraggingCamera && event.touches.length === 2) {
-                // Two-finger camera rotation
-                const currentAvgX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
-                const currentAvgY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+            const canvas = renderer.domElement; // Get the canvas element
 
-                const deltaX = currentAvgX - startTouchX;
-                const deltaY = currentAvgY - startTouchY;
+            if (isDraggingCamera) {
+                // Camera rotation (mouse drag or two-finger touch)
+                let clientX, clientY;
+                if (event.type === 'mousemove') {
+                    clientX = event.clientX;
+                    clientY = event.clientY;
+                } else if (event.type === 'touchmove' && event.touches.length === 2) {
+                    clientX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+                    clientY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+                } else {
+                    return; // Not a valid camera drag scenario
+                }
 
+                const deltaX = clientX - startInputX;
+                const deltaY = clientY - startInputY;
+
+                // Apply rotation based on input movement
                 cubeGroup.rotation.y = initialCameraRotation.y + deltaX * 0.005;
                 cubeGroup.rotation.x = initialCameraRotation.x + deltaY * 0.005;
 
-            } else if (isTwistingGesture && event.touches.length === 1 && intersectedCubelet) {
-                // Single-finger twist gesture
-                touchMoveX = event.touches[0].clientX;
-                touchMoveY = event.touches[0].clientY;
+            } else if (isTwistingGesture && event.type === 'touchmove' && event.touches.length === 1 && intersectedCubelet) {
+                // Single-finger twist gesture: track current position
+                currentInputX = event.touches[0].clientX;
+                currentInputY = event.touches[0].clientY;
             }
         }
 
-        function onTouchEnd(event) {
+        /**
+         * Unified handler for mouse up and touch end events.
+         * Finalizes camera rotation or attempts to trigger a layer twist.
+         */
+        function onInputEnd(event) {
             if (isTwistingGesture && intersectedCubelet) {
-                const deltaX = touchMoveX - touchStartX;
-                const deltaY = touchMoveY - touchStartY;
+                const deltaX = currentInputX - startInputX;
+                const deltaY = currentInputY - startInputY;
 
                 const absDeltaX = Math.abs(deltaX);
                 const absDeltaY = Math.abs(deltaY);
@@ -1270,48 +1289,6 @@
                 const movesDisplayElement = document.getElementById('movesDisplay');
 
                 if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplayElement) {
-                    console.log("All required DOM elements found. Initializing cube and listeners.");
-                    initCube();
-
-                    scrambleButton.addEventListener('click', scrambleCube);
-                    startButton.addEventListener('click', startTimer);
-                    resetButton.addEventListener('click', resetCube);
-
-                    // Twist buttons are now removed, so this part is no longer needed
-                    // document.querySelectorAll('.twist-button').forEach(button => {
-                    //     button.addEventListener('click', (event) => {
-                    //         const face = event.target.dataset.face;
-                    //         const direction = parseInt(event.target.dataset.direction);
-                    //         twistLayer(face, direction);
-                    //     });
-                    // });
-
-                    scheduleHourlyReset();
-
-                } else {
-                    console.log("Waiting for all required DOM elements to be available...");
-                    setTimeout(checkElementsAndInit, 50);
-                }
-            };
-
-            checkElementsAndInit();
-        });
-
-        // --- Event Listeners for Buttons ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Firebase first
-            setupFirebase();
-
-            // A defensive check to ensure elements are available before initializing Three.js and event listeners
-            const checkElementsAndInit = () => {
-                const canvas = document.getElementById('stubeCanvas');
-                const commentsSection = document.getElementById('commentsSection');
-                const scrambleButton = document.getElementById('scrambleButton');
-                const startButton = document.getElementById('startButton');
-                const resetButton = document.getElementById('resetButton');
-                const movesDisplayElement = document.getElementById('movesDisplay');
-
-                if (canvas && commentsSection && scrambleButton && startButton && resetButton && timerDisplay && movesDisplayElement) {
                     // Ensure canvas has valid dimensions before initializing Three.js
                     const initialCanvasWidth = canvas.offsetWidth;
                     const initialCanvasHeight = canvas.offsetHeight;
@@ -1338,14 +1315,8 @@
                 }
             };
 
-            checkElementsAndInit(); // Start the checking process
+            checkElementsAndInit();
         });
-
-        // Ensure the animation loop starts on window load for Three.js
-        window.onload = function () {
-            // initCube is already called by checkElementsAndInit, this is just a safeguard
-            // if initCube was moved here, it would ensure it runs after all resources are loaded.
-        };
     </script>
 </body>
 </html>
